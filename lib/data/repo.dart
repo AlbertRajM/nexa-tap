@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config.dart';
@@ -37,7 +38,45 @@ class Repo {
 
   Future<void> resetPassword(String email) => _db.auth.resetPasswordForEmail(email.trim());
 
-  Future<void> signOut() => _db.auth.signOut();
+  GoogleSignIn get _google => GoogleSignIn(
+        serverClientId: AppConfig.googleWebClientId,
+        scopes: const ['email', 'profile'],
+      );
+
+  /// Opens the Google account picker and signs in with the chosen account.
+  /// Returns false if the user closed the picker.
+  Future<bool> signInWithGoogle({String? referral}) async {
+    if (!AppConfig.googleReady) throw Exception('google_not_configured');
+    final google = _google;
+    // Always show the account picker, so people can choose which Google account to use.
+    try {
+      await google.signOut();
+    } catch (_) {}
+    final account = await google.signIn();
+    if (account == null) return false;
+    final auth = await account.authentication;
+    final idToken = auth.idToken;
+    if (idToken == null) throw Exception('google_no_token');
+    await _db.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: auth.accessToken,
+    );
+    final code = referral?.trim().toUpperCase() ?? '';
+    if (code.isNotEmpty) {
+      try {
+        await _db.rpc('apply_referral', params: {'code': code});
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  Future<void> signOut() async {
+    try {
+      await _google.signOut();
+    } catch (_) {}
+    await _db.auth.signOut();
+  }
 
   // ---------- Profile ----------
   Future<Profile> profile() async {

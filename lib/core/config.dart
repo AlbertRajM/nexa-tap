@@ -16,6 +16,11 @@ class AppConfig {
   static const premiumExtra = 200;
   static const referralDiscountPercent = 15;
 
+  /// Google login: the "Web application" client ID from Google Cloud
+  /// (ends with .apps.googleusercontent.com). Not a secret.
+  static const googleWebClientId = '882577910808-ml1hqc0kpjfcs7ao39kbvc4aohjer9rk.apps.googleusercontent.com';
+  static bool get googleReady => googleWebClientId.endsWith('.apps.googleusercontent.com');
+
   static const supportEmail = 'support@nexatap.in';
 
   static String profileLink(String username, {String? type}) {

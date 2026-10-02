@@ -46,7 +46,7 @@ class AccountScreen extends StatelessWidget {
     final ok = await nxDialog<bool>(
       context,
       title: t('Sign out?'),
-      content: Text(t('You can sign back in any time with your email and password.'), style: TextStyles.muted(p)),
+      content: Text(t('You can sign back in any time with Google or your email.'), style: TextStyles.muted(p)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('Cancel'), style: TextStyle(color: p.muted))),
         TextButton(

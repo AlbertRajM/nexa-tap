@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
@@ -25,6 +27,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _busy = false;
   bool _hide = true;
   bool _showReferral = false;
+  bool _googleBusy = false;
 
   @override
   void dispose() {
@@ -58,6 +61,19 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) toast(context, friendlyError(e), error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _googleLogin() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _googleBusy = true);
+    try {
+      await Repo.instance.signInWithGoogle(referral: _signUp ? _referral.text : null);
+      // On success the app switches to the dashboard by itself.
+    } catch (e) {
+      if (mounted) toast(context, friendlyError(e), error: true);
+    } finally {
+      if (mounted) setState(() => _googleBusy = false);
     }
   }
 
@@ -203,6 +219,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       onPressed: _submit,
                       loading: _busy,
                     ),
+                    const SizedBox(height: Space.l),
+                    const _OrDivider(),
+                    const SizedBox(height: Space.l),
+                    GoogleButton(busy: _googleBusy, onPressed: _busy ? null : _googleLogin),
                     const SizedBox(height: Space.xl),
                     Center(
                       child: Text(
@@ -276,4 +296,124 @@ class _Segment extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    return Row(
+      children: [
+        Expanded(child: Container(height: 1, color: p.border)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(t('or'), style: TextStyle(color: p.faint, fontSize: 13, fontWeight: FontWeight.w500)),
+        ),
+        Expanded(child: Container(height: 1, color: p.border)),
+      ],
+    );
+  }
+}
+
+/// "Continue with Google": dark glass button that glows green while pressed.
+class GoogleButton extends StatefulWidget {
+  final bool busy;
+  final VoidCallback? onPressed;
+  const GoogleButton({super.key, required this.busy, required this.onPressed});
+
+  @override
+  State<GoogleButton> createState() => _GoogleButtonState();
+}
+
+class _GoogleButtonState extends State<GoogleButton> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final glow = p.isDark ? p.accent : p.accent2;
+    final enabled = widget.onPressed != null && !widget.busy;
+    return GestureDetector(
+      onTapDown: enabled ? (_) => setState(() => _down = true) : null,
+      onTapCancel: () => setState(() => _down = false),
+      onTapUp: enabled
+          ? (_) {
+              setState(() => _down = false);
+              Energy.instance.bump(0.4);
+              widget.onPressed!();
+            }
+          : null,
+      child: AnimatedScale(
+        scale: _down ? 0.97 : 1,
+        duration: const Duration(milliseconds: 120),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 54,
+          decoration: BoxDecoration(
+            color: p.isDark ? const Color(0xFF0E1110) : Colors.white,
+            borderRadius: BorderRadius.circular(Radii.m),
+            border: Border.all(color: _down ? glow : p.border, width: _down ? 1.4 : 1),
+            boxShadow: [
+              BoxShadow(
+                color: glow.withValues(alpha: _down ? 0.35 : 0.0),
+                blurRadius: 18,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: widget.busy
+                ? SizedBox(
+                    key: const ValueKey('busy'),
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.2, color: glow),
+                  )
+                : Row(
+                    key: const ValueKey('idle'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CustomPaint(size: Size(20, 20), painter: _GoogleG()),
+                      const SizedBox(width: 12),
+                      Text(
+                        t('Continue with Google'),
+                        style: TextStyle(color: p.text, fontSize: 15.5, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The four-colour Google "G", drawn so no image file is needed.
+class _GoogleG extends CustomPainter {
+  const _GoogleG();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width * 0.2;
+    final c = size.center(Offset.zero);
+    final r = size.width / 2 - w / 2;
+    final rect = Rect.fromCircle(center: c, radius: r);
+    double rad(double d) => d * math.pi / 180;
+    Paint arc(Color col) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w
+      ..color = col;
+    canvas.drawArc(rect, rad(0), rad(45), false, arc(const Color(0xFF4285F4))); // blue
+    canvas.drawArc(rect, rad(45), rad(90), false, arc(const Color(0xFF34A853))); // green
+    canvas.drawArc(rect, rad(135), rad(80), false, arc(const Color(0xFFFBBC05))); // yellow
+    canvas.drawArc(rect, rad(215), rad(100), false, arc(const Color(0xFFEA4335))); // red
+    // Blue bar into the middle.
+    canvas.drawRect(Rect.fromLTRB(c.dx, c.dy - w / 2, c.dx + r + w / 2, c.dy + w / 2), Paint()..color = const Color(0xFF4285F4));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

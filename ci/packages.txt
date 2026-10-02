@@ -1,1 +1,1 @@
-supabase_flutter qr_flutter image_picker url_launcher shared_preferences gal nfc_manager:^3.5.0
+supabase_flutter qr_flutter image_picker url_launcher shared_preferences gal nfc_manager:^3.5.0 google_sign_in:^6.2.1

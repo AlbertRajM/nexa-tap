@@ -847,6 +847,14 @@ String friendlyError(Object e) {
   if (s.contains('SocketException') || s.contains('Failed host lookup')) {
     return t('No internet connection.');
   }
+  if (s.contains('google_not_configured')) return t('Google login is not set up yet.');
+  if (s.contains('ApiException: 10') || s.contains('google_no_token')) {
+    return t('Google login is not set up correctly. Check the Google Cloud setup (package name and SHA-1).');
+  }
+  if (s.contains('ApiException: 7') || s.contains('network_error')) return t('No internet connection.');
+  if (s.contains('Provider') && s.contains('not enabled')) {
+    return t('Google login is turned off in Supabase. Turn it on in Authentication → Providers.');
+  }
   if (s.contains('rate limit')) return t('Too many attempts. Please wait a minute.');
   final m = RegExp(r'message: ([^,\)]+)').firstMatch(s);
   return m?.group(1) ?? t('Something went wrong. Please try again.');
