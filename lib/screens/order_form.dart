@@ -52,7 +52,8 @@ class _OrderFormState extends State<OrderForm> {
     super.dispose();
   }
 
-  int get _total => _qty * AppConfig.cardPrice;
+  int get _unit => AppConfig.cardPrice + (CardDesign.byId(_design).premium ? AppConfig.premiumExtra : 0);
+  int get _total => _qty * _unit;
 
   void _pickType(CardType t) {
     final c = AppState.instance.card(t);
@@ -197,7 +198,7 @@ class _OrderFormState extends State<OrderForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(tf('{x} per card', formatRupees(AppConfig.cardPrice)), style: TextStyles.h3(p)),
+                        Text(tf('{x} per card', formatRupees(_unit)), style: TextStyles.h3(p)),
                         Text(t('NFC chip + QR code, programmed for you'), style: TextStyles.muted(p).copyWith(fontSize: 12)),
                       ],
                     ),
@@ -263,7 +264,7 @@ class _OrderFormState extends State<OrderForm> {
             Panel(
               child: Column(
                 children: [
-                  _row(p, '$_qty × ${formatRupees(AppConfig.cardPrice)}', formatRupees(_total)),
+                  _row(p, '$_qty × ${formatRupees(_unit)}', formatRupees(_total)),
                   const SizedBox(height: 8),
                   _row(p, t('Delivery'), t('Free')),
                   Divider(height: 24, color: p.border),

@@ -126,5 +126,56 @@ class Repo {
     return {'joined': 0, 'ordered': 0, 'list': []};
   }
 
-  String link(Profile p, {CardType? type}) => AppConfig.profileLink(p.username, type: type?.name);
+
+  // ---------- Notifications ----------
+  Future<List<AppNotification>> notifications() async {
+    final rows = await _db.from('notifications').select().eq('user_id', uid).order('created_at', ascending: false).limit(60);
+    return rows.map((r) => AppNotification.fromMap(r)).toList();
+  }
+
+  /// Live list of notifications (updates instantly when a new one arrives).
+  Stream<List<AppNotification>> notificationStream() => _db
+      .from('notifications')
+      .stream(primaryKey: ['id'])
+      .eq('user_id', uid)
+      .order('created_at', ascending: false)
+      .limit(60)
+      .map((rows) => rows.map((r) => AppNotification.fromMap(r)).toList());
+
+  Future<void> markAllRead() => _db.from('notifications').update({'read': true}).eq('user_id', uid).eq('read', false);
+
+  Future<void> markRead(String id) => _db.from('notifications').update({'read': true}).eq('id', id);
+
+  Future<void> deleteNotification(String id) => _db.from('notifications').delete().eq('id', id);
+
+  // ---------- Connections (leads) ----------
+  Future<List<Lead>> leads() async {
+    final rows = await _db.from('leads').select().eq('user_id', uid).order('created_at', ascending: false);
+    return rows.map((r) => Lead.fromMap(r)).toList();
+  }
+
+  Future<void> deleteLead(String id) => _db.from('leads').delete().eq('id', id);
+
+  // ---------- Insights ----------
+  Future<Map<String, dynamic>> viewStats() async {
+    final res = await _db.rpc('view_stats');
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return {};
+  }
+
+  // ---------- Moments ----------
+  Future<String> uploadMoment(Uint8List bytes) async {
+    final path = '$uid/moments/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await _db.storage.from('media').uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg'),
+        );
+    return _db.storage.from('media').getPublicUrl(path);
+  }
+
+  String link(Profile p, {CardType? type, String? source}) {
+    final base = AppConfig.profileLink(p.username, type: type?.name);
+    return source == null ? base : '$base&s=$source';
+  }
 }

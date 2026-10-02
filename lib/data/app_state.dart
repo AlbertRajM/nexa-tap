@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'models.dart';
@@ -13,7 +15,13 @@ class AppState extends ChangeNotifier {
   Profile? profile;
   List<CardProfile> cards = [];
   List<Order> orders = [];
+  List<AppNotification> notifications = [];
+  List<Lead> leads = [];
+  Map<String, dynamic> stats = {};
   bool loading = true;
+  StreamSubscription<List<AppNotification>>? _notifSub;
+
+  int get unread => notifications.where((n) => !n.read).length;
   String? error;
 
   CardProfile? card(CardType t) {
@@ -48,6 +56,59 @@ class AppState extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
+    if (error == null) _loadExtras();
+  }
+
+  /// Notifications, connections and stats load after the main screen is visible.
+  /// They fail quietly if the database update has not been run yet.
+  Future<void> _loadExtras() async {
+    _notifSub?.cancel();
+    try {
+      _notifSub = _repo.notificationStream().listen((list) {
+        notifications = list;
+        notifyListeners();
+      }, onError: (_) {});
+    } catch (_) {}
+    await Future.wait([refreshLeads(), refreshStats()]);
+  }
+
+  Future<void> refreshLeads() async {
+    try {
+      leads = await _repo.leads();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> refreshStats() async {
+    try {
+      stats = await _repo.viewStats();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> markAllRead() async {
+    notifications = [
+      for (final n in notifications)
+        AppNotification(id: n.id, kind: n.kind, title: n.title, body: n.body, read: true, createdAt: n.createdAt)
+    ];
+    notifyListeners();
+    try {
+      await _repo.markAllRead();
+    } catch (_) {}
+  }
+
+  Future<void> deleteNotification(String id) async {
+    notifications = notifications.where((n) => n.id != id).toList();
+    notifyListeners();
+    try {
+      await _repo.deleteNotification(id);
+    } catch (_) {}
+  }
+
+  Future<void> deleteLead(String id) async {
+    leads = leads.where((l) => l.id != id).toList();
+    notifyListeners();
+    await _repo.deleteLead(id);
   }
 
   Future<void> refreshOrders() async {
@@ -100,6 +161,11 @@ class AppState extends ChangeNotifier {
   }
 
   void clear() {
+    _notifSub?.cancel();
+    _notifSub = null;
+    notifications = [];
+    leads = [];
+    stats = {};
     profile = null;
     cards = [];
     orders = [];

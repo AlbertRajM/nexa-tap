@@ -10,6 +10,7 @@ import '../data/repo.dart';
 import '../widgets/nexa_card.dart';
 import '../core/i18n.dart';
 import '../core/icons.dart';
+import '../core/config.dart';
 
 /// Step-by-step editor for a personal or business profile, with a live card preview.
 class CardEditor extends StatefulWidget {
@@ -27,13 +28,16 @@ class _CardEditorState extends State<CardEditor> {
     'name', 'title', 'company', 'bio', 'phone', 'whatsapp', 'email', 'website', 'location', 'address', 'maps',
     'instagram', 'linkedin', 'x', 'facebook', 'youtube',
   ];
-  static const _steps = ['Basics', 'Contact', 'Social', 'Design'];
+  static const _steps = ['Basics', 'Contact', 'Social', 'Moments', 'Design'];
+  static const _maxMoments = 12;
 
   final _page = PageController();
   final Map<String, TextEditingController> _c = {};
   late String _design = widget.card.design;
   late String _avatar = widget.card.str('avatar');
   late String _logo = widget.card.str('logo');
+  late List<String> _moments = List<String>.from(((widget.card.data['moments'] as List?) ?? const []).map((e) => '$e'));
+  int _momentUploads = 0;
   int _step = 0;
   bool _saving = false;
   bool _dirty = false;
@@ -72,6 +76,7 @@ class _CardEditorState extends State<CardEditor> {
     }
     data['avatar'] = _avatar;
     data['logo'] = _logo;
+    data['moments'] = _moments;
     return widget.card.copyWith(design: _design, data: data);
   }
 
@@ -192,6 +197,7 @@ class _CardEditorState extends State<CardEditor> {
                   _basics(p),
                   _contact(),
                   _social(),
+                  _momentsStep(p),
                   _designStep(p),
                 ],
               ),
@@ -232,6 +238,8 @@ class _CardEditorState extends State<CardEditor> {
   Widget _gap() => const SizedBox(height: Space.l);
 
   Widget _basics(Palette p) => _scroll([
+        HintCard(icon: Ic.user, text: t('Your photo, name and what you do. This is the first thing people see on your profile.')),
+        const SizedBox(height: Space.l),
         Row(
           children: [
             _ImagePickTile(
@@ -291,6 +299,8 @@ class _CardEditorState extends State<CardEditor> {
       ]);
 
   Widget _contact() => _scroll([
+        HintCard(icon: Ic.phone, text: t('How people reach you. Leave anything empty to hide it from your profile.')),
+        const SizedBox(height: Space.l),
         NxField(
           label: _business ? t('Work phone') : t('Phone'),
           controller: _c['phone']!,
@@ -381,26 +391,150 @@ class _CardEditorState extends State<CardEditor> {
     ]);
   }
 
-  Widget _designStep(Palette p) => _scroll([
-        Text(t('Pick a finish for your card. The same design is used for the physical card when you order.'),
-            style: TextStyles.muted(p)),
-        const SizedBox(height: Space.l),
-        GridView.count(
+  Widget _designStep(Palette p) {
+    Widget grid(bool premium) => GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.15,
+          childAspectRatio: 1.12,
           children: [
-            for (final d in CardDesign.all)
+            for (final d in CardDesign.all.where((d) => d.premium == premium))
               _DesignTile(
                 design: d,
+                card: _draft,
                 selected: d.id == _design,
                 onTap: () => setState(() {
                   _design = d.id;
                   _dirty = true;
                 }),
+              ),
+          ],
+        );
+    return _scroll([
+      HintCard(
+          icon: Ic.palette,
+          text: t('Pick a finish for your card. The same design is used for the physical card when you order.')),
+      const SizedBox(height: Space.l),
+      SectionHeader(t('Standard')),
+      grid(false),
+      const SizedBox(height: Space.xl),
+      SectionHeader(tf('Premium (+{x} per card)', formatRupees(AppConfig.premiumExtra))),
+      grid(true),
+    ]);
+  }
+
+  Future<void> _addMoments() async {
+    final room = _maxMoments - _moments.length;
+    if (room <= 0) {
+      toast(context, tf('You can add up to {x} photos.', _maxMoments), error: true);
+      return;
+    }
+    try {
+      final files = await ImagePicker().pickMultiImage(maxWidth: 1600, maxHeight: 1600, imageQuality: 88);
+      if (files.isEmpty) return;
+      final pick = files.take(room).toList();
+      setState(() => _momentUploads = pick.length);
+      for (final f in pick) {
+        final url = await Repo.instance.uploadMoment(await f.readAsBytes());
+        if (!mounted) return;
+        setState(() {
+          _moments = [..._moments, url];
+          _momentUploads--;
+          _dirty = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) toast(context, '${t('Upload failed.')} ${friendlyError(e)}', error: true);
+    } finally {
+      if (mounted) setState(() => _momentUploads = 0);
+    }
+  }
+
+  Widget _momentsStep(Palette p) => _scroll([
+        HintCard(
+          icon: Ic.images,
+          text: t('Moments is your photo gallery: your work, products, events or travel. Visitors see it on your profile.'),
+        ),
+        const SizedBox(height: Space.l),
+        Row(
+          children: [
+            Expanded(child: Text(tf('{x} photos', '${_moments.length}/$_maxMoments'), style: TextStyles.h3(p))),
+            if (_moments.isNotEmpty)
+              TextButton(
+                onPressed: () => setState(() {
+                  _moments = [];
+                  _dirty = true;
+                }),
+                child: Text(t('Remove all'), style: TextStyle(color: p.danger)),
+              ),
+          ],
+        ),
+        const SizedBox(height: Space.s),
+        GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          children: [
+            for (final (i, m) in _moments.indexed)
+              FadeIn(
+                key: ValueKey(m),
+                delayMs: (i * 30).clamp(0, 200),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(Radii.m),
+                      child: Image.network(m, fit: BoxFit.cover, filterQuality: FilterQuality.medium,
+                          errorBuilder: (_, __, ___) => Container(color: p.surface2)),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _moments = [..._moments]..removeAt(i);
+                          _dirty = true;
+                        }),
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(Ic.x, size: 15, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            for (var i = 0; i < _momentUploads; i++)
+              Container(
+                decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(Radii.m)),
+                child: Center(
+                  child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: p.link)),
+                ),
+              ),
+            if (_moments.length + _momentUploads < _maxMoments)
+              Pressable(
+                onTap: _momentUploads > 0 ? null : _addMoments,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: p.surface,
+                    borderRadius: BorderRadius.circular(Radii.m),
+                    border: Border.all(color: p.isDark ? p.accent.withValues(alpha: 0.5) : p.accent2.withValues(alpha: 0.5)),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Ic.imagePlus, color: p.link, size: 24),
+                      const SizedBox(height: 6),
+                      Text(t('Add photos'), style: TextStyle(color: p.link, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
               ),
           ],
         ),
@@ -429,13 +563,12 @@ class _StepBar extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Column(
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
-                          width: 18,
-                          height: 18,
+                          width: 20,
+                          height: 20,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: i < current ? p.accent : (i == current ? p.accentSoft : p.surface2),
@@ -449,10 +582,12 @@ class _StepBar extends StatelessWidget {
                                       fontWeight: FontWeight.w700,
                                       color: i == current ? p.link : p.muted)),
                         ),
-                        const SizedBox(width: 6),
-                        Text(steps[i],
+                        const SizedBox(height: 4),
+                        Text(t(steps[i]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11.5,
                                 fontWeight: i == current ? FontWeight.w600 : FontWeight.w500,
                                 color: i == current ? p.text : p.muted)),
                       ],
@@ -511,9 +646,10 @@ class _ImagePickTile extends StatelessWidget {
 
 class _DesignTile extends StatelessWidget {
   final CardDesign design;
+  final CardProfile card;
   final bool selected;
   final VoidCallback onTap;
-  const _DesignTile({required this.design, required this.selected, required this.onTap});
+  const _DesignTile({required this.design, required this.card, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -522,7 +658,7 @@ class _DesignTile extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: p.surface,
           borderRadius: BorderRadius.circular(Radii.l),
@@ -533,25 +669,11 @@ class _DesignTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: design.gradient == null ? design.bg : null,
-                  gradient: design.gradient == null
-                      ? null
-                      : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: design.gradient!),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: p.border),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(left: 10, bottom: 12, child: Container(width: 14, height: 2, color: design.line)),
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Icon(Ic.nfc, size: 14, color: design.fg.withValues(alpha: 0.7)),
-                    ),
-                  ],
+              child: Center(
+                child: FittedBox(
+                  child: IgnorePointer(
+                    child: CardFace(design: design, card: card, link: '', width: 300),
+                  ),
                 ),
               ),
             ),
@@ -562,11 +684,20 @@ class _DesignTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(design.name, style: TextStyles.h3(p).copyWith(fontSize: 13.5)),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(design.name,
+                                maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyles.h3(p).copyWith(fontSize: 13.5)),
+                          ),
+                          if (design.premium) ...[
+                            const SizedBox(width: 4),
+                            Icon(Ic.crown, size: 13, color: const Color(0xFFD4AF37)),
+                          ],
+                        ],
+                      ),
                       Text(t(design.finish),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: p.muted, fontSize: 11.5)),
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 11.5)),
                     ],
                   ),
                 ),

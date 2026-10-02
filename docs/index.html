@@ -52,6 +52,16 @@
   .row .ic{width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;flex:none}
   .row .k{font-size:12px;color:var(--muted)}
   .row .v{font-size:14px;font-weight:500;word-break:break-word}
+  .sec{font-family:Syne,sans-serif;font-weight:800;font-size:15px;margin:20px 4px 10px}
+  .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .gal img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;animation:rise .5s both}
+  .ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;margin-top:16px;background:transparent;
+         color:var(--text);border:1px solid var(--border);border-radius:14px;font:600 15px Outfit,sans-serif;cursor:pointer}
+  .leadform{display:grid;gap:8px;margin-top:10px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+  .leadform input,.leadform textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);
+         color:var(--text);font:15px Outfit,sans-serif}
+  .leadform textarea{min-height:70px;resize:vertical}
+  .sent{margin-top:14px;padding:16px;text-align:center;border-radius:14px;background:var(--surface);border:1px solid var(--border);font-weight:600}
   .foot{text-align:center;color:var(--faint);font-size:12px;margin-top:24px}
   .foot a{color:var(--muted);font-weight:600;text-decoration:none}
   .state{text-align:center;padding:80px 20px;color:var(--muted)}
@@ -82,7 +92,11 @@ const DESIGNS = {
   volt:['#C8FF4D','#0B0D1A'], ultraviolet:['linear-gradient(135deg,#3A2DB8,#8B7CFF)','#C8FF4D'],
   holo:['linear-gradient(135deg,#B8F3FF,#E6C8FF,#FFE9B0,#C8FFE0)','#5B4BDB'],
   graphite:['#16171C','#C8FF4D'], navy:['linear-gradient(135deg,#0B1226,#1C2B55)','#B59A5A'], ivory:['#F2EEE6','#B9B2A4'],
-  forest:['#1E3A2E','#8DA595'], sand:['#D9C6A8','#9C8667'], steel:['linear-gradient(135deg,#8E949A,#D3D7DB,#9DA3A9)','#6C7177']
+  forest:['#1E3A2E','#8DA595'], sand:['#D9C6A8','#9C8667'], steel:['linear-gradient(135deg,#8E949A,#D3D7DB,#9DA3A9)','#6C7177'],
+  aurum:['linear-gradient(135deg,#15130F,#0A0907)','#D4AF37'], carbon:['repeating-linear-gradient(45deg,#141518 0 6px,#1d1e22 6px 12px)','#FF5C7A'],
+  marble:['linear-gradient(135deg,#F4F3F1,#E6E4E0,#F7F6F4)','#B08D57'], rosegold:['linear-gradient(135deg,#B76E79,#E8B4B8,#C98C8F)','#2B1416'],
+  oceanic:['linear-gradient(135deg,#062E3A,#0E6E7A)','#7FF5E0'], sunset:['linear-gradient(135deg,#FF5F6D,#FFC371)','#FFE9B0'],
+  neon:['#07080F','#C8FF4D']
 };
 const I = {
   call:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
@@ -120,6 +134,7 @@ function vcard(d){
 
 function render(p){
   const d = p.data || {};
+  const moments = Array.isArray(d.moments) ? d.moments : [];
   const [band, line] = DESIGNS[p.design] || DESIGNS.graphite;
   const initials = (d.name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const role = [d.title, p.type === 'business' ? d.company : ''].filter(Boolean).join(' · ');
@@ -155,8 +170,33 @@ function render(p){
       <a class="row" href="${esc(r[3])}" target="_blank" rel="noopener">
         <div class="ic">${svg(r[0])}</div>
         <div><div class="k">${r[1]}</div><div class="v">${esc(r[2])}</div></div>
-      </a>`).join('')}</div>` : ''}`;
+      </a>`).join('')}</div>` : ''}
+    ${moments.length ? `<div class="sec">Moments</div><div class="gal">${moments.slice(0, 12).map(m =>
+      `<img src="${esc(m)}" alt="" loading="lazy" onclick="window.open(this.src,'_blank')">`).join('')}</div>` : ''}
+    <button class="ghost" id="lead">${svg('save')}Share my contact with ${esc((d.name || '').split(' ')[0] || 'them')}</button>
+    <form class="leadform" id="leadform" hidden>
+      <input name="n" placeholder="Your name" required maxlength="80">
+      <input name="p" placeholder="Phone" inputmode="tel" maxlength="20">
+      <input name="e" placeholder="Email" type="email" maxlength="120">
+      <textarea name="m" placeholder="Message (optional)" maxlength="300"></textarea>
+      <button class="save" type="submit">Send</button>
+    </form>`;
   document.getElementById('save').onclick = () => vcard(d);
+  const form = document.getElementById('leadform');
+  document.getElementById('lead').onclick = () => { form.hidden = !form.hidden; if (!form.hidden) form.n.focus(); };
+  form.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_lead`, {
+        method: 'POST', headers: {'apikey': SUPABASE_KEY, 'Content-Type': 'application/json'},
+        body: JSON.stringify({uname: p.username, lead_name: form.n.value, lead_phone: form.p.value, lead_email: form.e.value, lead_note: form.m.value})
+      });
+      if (!r.ok) throw 0;
+      form.outerHTML = '<div class="sent">Thanks! Your contact was shared.</div>';
+      document.getElementById('lead').remove();
+    } catch (e) { btn.disabled = false; btn.textContent = 'Try again'; }
+  };
 }
 
 function empty(title, msg){
@@ -171,7 +211,7 @@ function empty(title, msg){
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_profile`, {
       method: 'POST',
       headers: {'apikey': SUPABASE_KEY, 'Content-Type': 'application/json'},
-      body: JSON.stringify({uname: u, card_type: q.get('c')})
+      body: JSON.stringify({uname: u, card_type: q.get('c'), src: q.get('s') || 'link'})
     });
     const data = await res.json();
     if (!res.ok || !data) return empty('Profile unavailable', 'This profile is paused or does not exist.');

@@ -64,7 +64,7 @@ class _ShareSheet extends StatelessWidget {
                   border: Border.all(color: p.border),
                 ),
                 child: QrImageView(
-                  data: link,
+                  data: Repo.instance.link(profile, type: card.type, source: 'qr'),
                   size: 200,
                   padding: EdgeInsets.zero,
                   backgroundColor: Colors.white,

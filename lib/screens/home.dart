@@ -8,11 +8,12 @@ import '../core/ui.dart';
 import '../data/app_state.dart';
 import '../data/models.dart';
 import '../data/repo.dart';
+import '../widgets/brand.dart';
 import '../widgets/nexa_card.dart';
+import 'card_tools.dart';
 import 'card_editor.dart';
 import 'order_form.dart';
 import 'orders.dart';
-import 'referrals.dart';
 import 'share.dart';
 import 'shell.dart';
 import '../core/i18n.dart';
@@ -45,7 +46,10 @@ class HomeScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(Space.page, Space.m, Space.page, 48),
             children: [
+              const FadeIn(child: BrandHeader()),
+              const SizedBox(height: Space.xl),
               FadeIn(
+                delayMs: 40,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -65,7 +69,7 @@ class HomeScreen extends StatelessWidget {
                   delayMs: 140,
                   child: Column(
                     children: [
-                      NexaCard(card: card, link: Repo.instance.link(profile, type: card.type)),
+                      NexaCard(card: card, link: Repo.instance.link(profile, type: card.type, source: 'qr')),
                       const SizedBox(height: 14),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -95,15 +99,15 @@ class HomeScreen extends StatelessWidget {
                   ),
                   _Action(
                     i: 2,
-                    icon: Ic.bag,
-                    label: t('Order'),
-                    onTap: () => Navigator.of(context).push(nxRoute(const OrderForm())),
+                    icon: Ic.device,
+                    label: t('Preview'),
+                    onTap: card == null ? null : () => Navigator.of(context).push(nxRoute(PhonePreview(initial: card.type))),
                   ),
                   _Action(
                     i: 3,
-                    icon: Ic.gift,
-                    label: t('Invite'),
-                    onTap: () => Navigator.of(context).push(nxRoute(const ReferralsScreen())),
+                    icon: Ic.nfc,
+                    label: t('Write NFC'),
+                    onTap: card == null ? null : () => showNfcWriter(context, card),
                   ),
                 ],
               ),
@@ -118,6 +122,8 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: Space.m),
+              FadeIn(delayMs: 330, child: _Insights(stats: s.stats, leads: s.leads.length)),
               if (card != null && card.completeness < 1) ...[
                 const SizedBox(height: Space.m),
                 FadeIn(delayMs: 360, child: _CompleteNudge(card: card)),
@@ -429,7 +435,7 @@ class _LatestOrder extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(t('Latest order'), action: t('View all'), onAction: () => Shell.goTo(context, 2)),
+        SectionHeader(t('Latest order'), action: t('View all'), onAction: () => Shell.goTo(context, Tabs.orders)),
         Panel(
           onTap: () => Navigator.of(context).push(nxRoute(OrderDetail(order: order))),
           child: Column(
@@ -462,6 +468,102 @@ class _LatestOrder extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+/// Views over the last 7 days, plus where visits came from.
+class _Insights extends StatelessWidget {
+  final Map<String, dynamic> stats;
+  final int leads;
+  const _Insights({required this.stats, required this.leads});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final days = ((stats['days'] as List?) ?? const []).cast<Map>();
+    final counts = days.isEmpty ? List.filled(7, 0) : days.map((d) => (d['count'] as num?)?.toInt() ?? 0).toList();
+    final labels = days.isEmpty
+        ? List.filled(7, '')
+        : days.map((d) {
+            final dt = DateTime.tryParse('${d['date']}');
+            return dt == null ? '' : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][dt.weekday - 1];
+          }).toList();
+    final maxV = counts.fold<int>(1, (a, b) => math.max(a, b));
+    final week = counts.fold<int>(0, (a, b) => a + b);
+    Widget src(IconData i, String l, Object? v) => Expanded(
+          child: Row(
+            children: [
+              Icon(i, size: 15, color: p.muted),
+              const SizedBox(width: 6),
+              Flexible(child: Text('$l ', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyles.label(p))),
+              Text('${v ?? 0}', style: TextStyles.h3(p).copyWith(fontSize: 14)),
+            ],
+          ),
+        );
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Ic.chart, size: 18, color: p.isDark ? p.accent : p.accent2),
+              const SizedBox(width: 8),
+              Expanded(child: Text(t('Profile visits this week'), style: TextStyles.h3(p))),
+              CountUp(week, style: TextStyles.number(p).copyWith(fontSize: 20)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(t('How many times people opened your profile each day.'), style: TextStyles.muted(p).copyWith(fontSize: 12.5)),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 96,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < counts.length; i++)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (counts[i] > 0)
+                            Text('${counts[i]}', style: TextStyle(fontSize: 10, color: p.muted, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 3),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: counts[i] / maxV),
+                            duration: Duration(milliseconds: 700 + i * 70),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, v, _) => Container(
+                              height: 4 + 58 * v,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                color: i == counts.length - 1 ? p.accent : (p.isDark ? p.accent2 : p.accent2).withValues(alpha: 0.55),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(labels[i], style: TextStyle(fontSize: 10.5, color: p.faint)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 24, color: p.border),
+          Row(
+            children: [
+              src(Ic.qr, t('QR'), stats['qr']),
+              src(Ic.nfc, 'NFC', stats['nfc']),
+              src(Ic.link, t('Link'), stats['link']),
+              src(Ic.users, t('Connections'), leads),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

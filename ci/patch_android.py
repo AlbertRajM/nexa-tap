@@ -4,8 +4,16 @@ import re, pathlib
 m = pathlib.Path('build_app/android/app/src/main/AndroidManifest.xml')
 s = m.read_text()
 s = re.sub(r'android:label="[^"]*"', 'android:label="Nexa Tap"', s, count=1)
-if 'android.permission.INTERNET' not in s:
-    s = s.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <application', 1)
+extra = [
+    '<uses-permission android:name="android.permission.INTERNET"/>',
+    '<uses-permission android:name="android.permission.NFC"/>',
+    '<uses-feature android:name="android.hardware.nfc" android:required="false"/>',
+    '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>',
+]
+for line in extra:
+    key = line.split('"')[1]
+    if key not in s:
+        s = s.replace('<application', line + '\n    <application', 1)
 queries = '''
         <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>
         <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="sms"/></intent>
@@ -62,3 +70,10 @@ if 'family: Lucide' not in y:
 ''', 1)
     pub.write_text(y)
 print('icons + textures added to pubspec')
+
+# ---- Use the same signing key for every build, so new APKs install over old ones ----
+import shutil, os
+ks_dir = os.path.expanduser('~/.android')
+os.makedirs(ks_dir, exist_ok=True)
+shutil.copy('ci/debug.keystore', os.path.join(ks_dir, 'debug.keystore'))
+print('fixed signing key installed')

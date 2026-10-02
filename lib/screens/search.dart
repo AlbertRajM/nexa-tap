@@ -12,6 +12,8 @@ import '../data/models.dart';
 import '../data/repo.dart';
 import '../widgets/neon_border.dart';
 import 'card_editor.dart';
+import 'card_tools.dart';
+import 'notifications.dart';
 import 'order_form.dart';
 import 'orders.dart';
 import 'referrals.dart';
@@ -158,19 +160,25 @@ class _SearchScreenState extends State<SearchScreen> {
     final profile = s.profile;
     final items = <_Item>[
       _Item(t('Home'), t('Your card and stats'), Ic.home, 'dashboard main start',
-          (c) => _then(c, (_) => Shell.goTo(c, 0))),
+          (c) => _then(c, (_) => Shell.goTo(c, Tabs.home))),
       _Item(t('My cards'), t('Turn profiles on or off'), Ic.cards, 'cards profiles default enable disable',
-          (c) => _then(c, (_) => Shell.goTo(c, 1))),
+          (c) => _then(c, (_) => Shell.goTo(c, Tabs.cards))),
       _Item(t('Orders'), t('Track your physical cards'), Ic.truck, 'orders tracking delivery status',
-          (c) => _then(c, (_) => Shell.goTo(c, 2))),
+          (c) => _then(c, (_) => Shell.goTo(c, Tabs.orders))),
+      _Item(t('Connections'), t('People who shared their contact'), Ic.users, 'connections leads contacts people visitors',
+          (c) => _then(c, (_) => Shell.goTo(c, Tabs.connections))),
+      _Item(t('Notifications'), t('Order updates and alerts'), Ic.bell, 'notifications alerts bell messages',
+          (c) => _then(c, (nav) => nav.push(nxRoute(const NotificationsScreen())))),
+      _Item(t('Visitor preview'), t('See your profile in a 3D phone'), Ic.device, 'preview phone visitor 3d how others see',
+          (c) => _then(c, (nav) => nav.push(nxRoute(const PhonePreview())))),
       _Item(t('Order a new card'), tf('{x} per card', formatRupees(AppConfig.cardPrice)), Ic.bag,
           'buy order purchase new nfc card print', (c) => _then(c, (nav) => nav.push(nxRoute(const OrderForm())))),
       _Item(t('Invite friends'), t('Share your referral code'), Ic.gift,
           'invite referral code friends discount', (c) => _then(c, (nav) => nav.push(nxRoute(const ReferralsScreen())))),
       _Item(t('Account'), t('Name, appearance and more'), Ic.user, 'account settings profile name',
-          (c) => _then(c, (_) => Shell.goTo(c, 4))),
+          (c) => _then(c, (_) => Shell.goTo(c, Tabs.account))),
       _Item(t('Change background'), t('Aurora, Network, Waves and more'), Ic.wallpaper,
-          'background animation theme moving wallpaper', (c) => _then(c, (_) => Shell.goTo(c, 4))),
+          'background animation theme moving wallpaper', (c) => _then(c, (_) => Shell.goTo(c, Tabs.account))),
       _Item(t('Light mode'), t('Switch to the light theme'), Ic.sun, 'light theme white appearance',
           (c) => ThemeController.instance.set(ThemeMode.light)),
       _Item(t('Dark mode'), t('Switch to the dark theme'), Ic.moon, 'dark theme black night appearance',
@@ -200,6 +208,20 @@ class _SearchScreenState extends State<SearchScreen> {
         Ic.edit,
         'edit ${card.type.name} card profile photo phone email ${card.str('company')} ${card.str('title')}',
         (c) => _then(c, (nav) => nav.push(nxRoute(CardEditor(card: card)))),
+      ));
+      items.add(_Item(
+        t('Write NFC'),
+        tf('{x} card', card.type.label),
+        Ic.nfc,
+        'nfc write program tag sticker blank ${card.type.name}',
+        (c) => _then(c, (nav) => showNfcWriter(nav.context, card)),
+      ));
+      items.add(_Item(
+        t('Download'),
+        tf('{x} card', card.type.label),
+        Ic.download,
+        'download save image hd gallery print ${card.type.name}',
+        (c) => _then(c, (nav) => showCardDownload(nav.context, card)),
       ));
       if (profile != null && card.enabled) {
         items.add(_Item(

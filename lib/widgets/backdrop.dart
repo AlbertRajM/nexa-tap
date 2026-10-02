@@ -13,19 +13,52 @@ double get _now => _clock.elapsedMicroseconds / 1e6;
 
 /// Fine film-grain texture drawn 1:1 with screen pixels for a crisp, premium finish.
 class _Grain {
-  static ui.Image? image;
+  static final image = ValueNotifier<ui.Image?>(null);
   static bool _loading = false;
   static Future<void> load() async {
-    if (image != null || _loading) return;
+    if (image.value != null || _loading) return;
     _loading = true;
     try {
       final data = await rootBundle.load('assets/textures/grain.png');
       final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-      image = (await codec.getNextFrame()).image;
+      image.value = (await codec.getNextFrame()).image;
     } catch (_) {
       _loading = false;
     }
   }
+}
+
+/// Vignette + grain. Painted once and cached, so it costs nothing per frame.
+class _StaticLayers extends CustomPainter {
+  final Palette p;
+  final double dpr;
+  _StaticLayers(this.p, this.dpr) : super(repaint: _Grain.image);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          radius: 1.1,
+          colors: [Colors.transparent, Colors.black.withValues(alpha: p.isDark ? 0.35 : 0.06)],
+          stops: const [0.55, 1.0],
+        ).createShader(rect),
+    );
+    final g = _Grain.image.value;
+    if (g != null && dpr > 0) {
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = ImageShader(g, TileMode.repeated, TileMode.repeated, Matrix4.diagonal3Values(1 / dpr, 1 / dpr, 1).storage)
+          ..color = Colors.white.withValues(alpha: p.isDark ? 0.035 : 0.05),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StaticLayers old) => old.p != p || old.dpr != dpr;
 }
 
 /// Taps anywhere on screen leave a fading ring on the background.
@@ -76,9 +109,14 @@ class _AnimatedBackdropState extends State<AnimatedBackdrop> with SingleTickerPr
       child: RepaintBoundary(
         child: ValueListenableBuilder<Backdrop>(
           valueListenable: BackdropController.instance,
-          builder: (context, kind, _) => CustomPaint(
-            size: Size.infinite,
-            painter: _BackdropPainter(kind: kind, p: p, time: _time, dpr: MediaQuery.devicePixelRatioOf(context)),
+          builder: (context, kind, _) => Stack(
+            fit: StackFit.expand,
+            children: [
+              CustomPaint(size: Size.infinite, painter: _BackdropPainter(kind: kind, p: p, time: _time)),
+              RepaintBoundary(
+                child: CustomPaint(size: Size.infinite, painter: _StaticLayers(p, MediaQuery.devicePixelRatioOf(context))),
+              ),
+            ],
           ),
         ),
       ),
@@ -137,27 +175,6 @@ class _BackdropPainter extends CustomPainter {
         break;
     }
     if (touches) _touches(canvas, t);
-    // Depth: soft vignette towards the edges.
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = RadialGradient(
-          radius: 1.1,
-          colors: [Colors.transparent, Colors.black.withValues(alpha: p.isDark ? 0.35 : 0.06)],
-          stops: const [0.55, 1.0],
-        ).createShader(rect),
-    );
-    // Grain, mapped to physical pixels so it stays sharp on HD screens.
-    final g = _Grain.image;
-    if (g != null && dpr > 0) {
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..shader = ImageShader(g, TileMode.repeated, TileMode.repeated, Matrix4.diagonal3Values(1 / dpr, 1 / dpr, 1).storage)
-          ..blendMode = BlendMode.overlay
-          ..color = Colors.white.withValues(alpha: p.isDark ? 0.22 : 0.14),
-      );
-    }
   }
 
   void _blob(Canvas c, Offset o, double r, Color col, double alpha) {

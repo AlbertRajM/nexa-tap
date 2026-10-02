@@ -274,7 +274,7 @@ class _NxButtonState extends State<NxButton> with SingleTickerProviderStateMixin
             children: [
               if (widget.kind == BtnKind.primary)
                 Positioned.fill(
-                  child: AnimatedBuilder(
+                  child: RepaintBoundary(child: AnimatedBuilder(
                     animation: _shine,
                     builder: (context, _) {
                       final x = -1.6 + _shine.value * 5; // sweeps across, then rests
@@ -290,7 +290,7 @@ class _NxButtonState extends State<NxButton> with SingleTickerProviderStateMixin
                         ),
                       );
                     },
-                  ),
+                  )),
                 ),
               Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: content),
             ],
@@ -850,4 +850,45 @@ String friendlyError(Object e) {
   if (s.contains('rate limit')) return t('Too many attempts. Please wait a minute.');
   final m = RegExp(r'message: ([^,\)]+)').firstMatch(s);
   return m?.group(1) ?? t('Something went wrong. Please try again.');
+}
+
+/// Small explainer shown at the top of screens so every feature is easy to understand.
+class HintCard extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const HintCard({super.key, required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final c = p.isDark ? p.accent : p.accent2;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(Radii.m),
+        border: Border.all(color: c.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: c),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: TextStyles.muted(p).copyWith(color: p.text.withValues(alpha: 0.85), fontSize: 13.5))),
+        ],
+      ),
+    );
+  }
+}
+
+/// iOS-style smooth bouncing scroll everywhere, with no glow.
+class SmoothScroll extends MaterialScrollBehavior {
+  const SmoothScroll();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics(), decelerationRate: ScrollDecelerationRate.fast);
+
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
 }

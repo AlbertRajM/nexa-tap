@@ -38,7 +38,7 @@ class _NeonBorderState extends State<NeonBorder> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return AnimatedBuilder(
+    return RepaintBoundary(child: AnimatedBuilder(
       animation: _c,
       builder: (context, child) => CustomPaint(
         painter: _NeonPainter(
@@ -51,7 +51,7 @@ class _NeonBorderState extends State<NeonBorder> with SingleTickerProviderStateM
         child: child,
       ),
       child: Padding(padding: EdgeInsets.all(widget.thickness + 0.8), child: widget.child),
-    );
+    ));
   }
 }
 
@@ -72,16 +72,17 @@ class _NeonPainter extends CustomPainter {
       transform: GradientRotation(turn * 2 * math.pi),
     ).createShader(rect);
 
-    // Outer glow
-    canvas.drawRRect(
-      rr,
-      Paint()
-        ..shader = shader
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness * 4
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 * glow)
-        ..color = Colors.white.withValues(alpha: 0.6 * glow),
-    );
+    // Soft glow: a few wider, fainter strokes (much cheaper than a blur every frame)
+    for (var i = 3; i >= 1; i--) {
+      canvas.drawRRect(
+        rr,
+        Paint()
+          ..shader = shader
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = thickness + i * 3.0
+          ..color = Colors.white.withValues(alpha: 0.10 * glow),
+      );
+    }
     // Crisp line
     canvas.drawRRect(
       rr,

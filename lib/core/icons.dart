@@ -68,4 +68,21 @@ class Ic {
   static const IconData users = IconData(57764, fontFamily: _f);
   static const IconData wallpaper = IconData(58443, fontFamily: _f);
   static const IconData youtube = IconData(57472, fontFamily: _f);
+  static const IconData bell = IconData(57433, fontFamily: _f);
+  static const IconData trash = IconData(57742, fontFamily: _f);
+  static const IconData download = IconData(57522, fontFamily: _f);
+  static const IconData images = IconData(58820, fontFamily: _f);
+  static const IconData crown = IconData(57814, fontFamily: _f);
+  static const IconData chart = IconData(58019, fontFamily: _f);
+  static const IconData sparkle = IconData(58494, fontFamily: _f);
+  static const IconData camera = IconData(57444, fontFamily: _f);
+  static const IconData x = IconData(57778, fontFamily: _f);
+  static const IconData rotate = IconData(58090, fontFamily: _f);
+  static const IconData palette = IconData(57821, fontFamily: _f);
+  static const IconData wand = IconData(58199, fontFamily: _f);
+  static const IconData lightbulb = IconData(57794, fontFamily: _f);
+  static const IconData scanLine = IconData(57944, fontFamily: _f);
+  static const IconData idCard = IconData(58903, fontFamily: _f);
+  static const IconData smartphoneNfc = IconData(58308, fontFamily: _f);
+  static const IconData layers = IconData(58665, fontFamily: _f);
 }

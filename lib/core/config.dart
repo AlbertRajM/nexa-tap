@@ -11,6 +11,9 @@ class AppConfig {
 
   /// Price per physical NFC card, in rupees.
   static const cardPrice = 499;
+
+  /// Extra charge per card for premium finishes.
+  static const premiumExtra = 200;
   static const referralDiscountPercent = 15;
 
   static const supportEmail = 'support@nexatap.in';

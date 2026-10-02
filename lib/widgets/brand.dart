@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
 import 'backdrop.dart';
+import '../core/i18n.dart';
 
 /// The Nexa Tap mark: an "N" whose right stroke turns into tap waves.
 /// It draws itself in, then the waves keep pulsing like an NFC signal.
@@ -11,7 +13,10 @@ class NexaLogo extends StatefulWidget {
   final double size;
   final bool animate;
   final Color? color;
-  const NexaLogo({super.key, this.size = 40, this.animate = true, this.color});
+
+  /// Redraw the logo every few seconds (used on the dashboard).
+  final bool loop;
+  const NexaLogo({super.key, this.size = 40, this.animate = true, this.color, this.loop = false});
 
   @override
   State<NexaLogo> createState() => _NexaLogoState();
@@ -23,12 +28,19 @@ class _NexaLogoState extends State<NexaLogo> with TickerProviderStateMixin {
   late final AnimationController _pulse =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     if (widget.animate) {
       _intro.forward();
       _pulse.repeat();
+      if (widget.loop) {
+        _timer = Timer.periodic(const Duration(seconds: 7), (_) {
+          if (mounted) _intro.forward(from: 0);
+        });
+      }
     } else {
       _intro.value = 1;
     }
@@ -36,6 +48,7 @@ class _NexaLogoState extends State<NexaLogo> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _intro.dispose();
     _pulse.dispose();
     super.dispose();
@@ -185,4 +198,106 @@ class SplashView extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Dashboard header: animated logo with a breathing glow and a rotating ring.
+class BrandHeader extends StatefulWidget {
+  const BrandHeader({super.key});
+
+  @override
+  State<BrandHeader> createState() => _BrandHeaderState();
+}
+
+class _BrandHeaderState extends State<BrandHeader> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final mark = p.isDark ? p.accent : p.accent2;
+    return Row(
+      children: [
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (context, child) {
+              final v = _c.value;
+              final breathe = 0.5 + 0.5 * math.sin(v * 2 * math.pi);
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [mark.withValues(alpha: 0.18 + 0.14 * breathe), mark.withValues(alpha: 0)]),
+                    ),
+                  ),
+                  Transform.rotate(
+                    angle: v * 2 * math.pi,
+                    child: CustomPaint(size: const Size(58, 58), painter: _RingPainter(mark)),
+                  ),
+                  child!,
+                ],
+              );
+            },
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0B0D1A),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              alignment: Alignment.center,
+              child: NexaLogo(size: 30, loop: true, color: Palette.dark.accent),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('nexa tap',
+                  style: TextStyle(
+                      fontFamily: Fonts.display, fontSize: 20, fontWeight: FontWeight.w800, color: p.text, letterSpacing: -0.5)),
+              const SizedBox(height: 2),
+              Text(t('Tap · Share · Connect'), style: TextStyle(fontSize: 12.5, color: p.muted, letterSpacing: 0.4)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  final Color color;
+  _RingPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Rect.fromLTWH(1, 1, size.width - 2, size.height - 2);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..shader = SweepGradient(colors: [color.withValues(alpha: 0), color, color.withValues(alpha: 0)], stops: const [0.0, 0.25, 0.5])
+          .createShader(r);
+    canvas.drawArc(r, 0, math.pi * 1.2, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter old) => old.color != color;
 }

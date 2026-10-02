@@ -10,6 +10,7 @@ import 'screens/shell.dart';
 import 'screens/welcome.dart';
 import 'widgets/brand.dart';
 import 'core/i18n.dart';
+import 'core/ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,7 @@ class NexaApp extends StatelessWidget {
       builder: (context, mode, _) => MaterialApp(
         title: AppConfig.appName,
         debugShowCheckedModeBanner: false,
+        scrollBehavior: const SmoothScroll(),
         theme: buildTheme(Palette.light),
         darkTheme: buildTheme(Palette.dark),
         themeMode: mode,

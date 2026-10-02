@@ -13,6 +13,8 @@ import 'account.dart';
 import 'cards.dart';
 import 'home.dart';
 import 'orders.dart';
+import 'connections.dart';
+import 'notifications.dart';
 import 'referrals.dart';
 import 'search.dart';
 import '../core/i18n.dart';
@@ -25,9 +27,20 @@ class _Dest {
   const _Dest(this.icon, this.label);
 }
 
+/// Tab numbers used across the app.
+class Tabs {
+  static const home = 0;
+  static const cards = 1;
+  static const connections = 2;
+  static const orders = 3;
+  static const invite = 4; // opens as its own page
+  static const account = 5;
+}
+
 const _dests = [
   _Dest(Ic.home, 'Home'),
   _Dest(Ic.cards, 'My cards'),
+  _Dest(Ic.users, 'Connections'),
   _Dest(Ic.truck, 'Orders'),
   _Dest(Ic.gift, 'Invite friends'),
   _Dest(Ic.user, 'Account'),
@@ -70,33 +83,42 @@ class _ShellState extends State<Shell> with SingleTickerProviderStateMixin {
 
   bool get _open => _menu.value > 0.5;
 
+  // Note: closing uses animateBack so the controller's status is correct
+  // afterwards — this was why the menu button stopped responding before.
+  void _openMenu() => _menu.animateTo(1, curve: Curves.easeOutCubic);
+  void _closeMenu() {
+    if (_menu.value > 0) _menu.animateBack(0, curve: Curves.easeOutCubic);
+  }
+
   void _toggle() {
     HapticFeedback.lightImpact();
     Energy.instance.bump(0.5);
-    if (_menu.isCompleted || _menu.status == AnimationStatus.forward) {
-      _menu.animateTo(0, curve: Curves.easeOutCubic);
+    final opening = _menu.status == AnimationStatus.forward && _menu.value < 1;
+    if (opening || _menu.value > 0.5) {
+      _closeMenu();
     } else {
-      _menu.animateTo(1, curve: Curves.easeOutCubic);
+      _openMenu();
     }
   }
 
   void _select(int i) {
     HapticFeedback.selectionClick();
-    if (i == 3) {
+    if (i == Tabs.invite) {
       Shell.tab.value = _index;
-      _menu.animateTo(0, curve: Curves.easeOutCubic);
+      _closeMenu();
       Navigator.of(context).push(nxRoute(const ReferralsScreen()));
       return;
     }
     setState(() => _index = i);
     if (Shell.tab.value != i) Shell.tab.value = i;
-    if (_menu.value > 0) _menu.animateTo(0, curve: Curves.easeOutCubic);
+    _closeMenu();
   }
 
   Widget _page(int i) => switch (i) {
-        1 => const CardsScreen(key: ValueKey(1)),
-        2 => const OrdersScreen(key: ValueKey(2)),
-        4 => const AccountScreen(key: ValueKey(4)),
+        Tabs.cards => const CardsScreen(key: ValueKey(1)),
+        Tabs.connections => const ConnectionsScreen(key: ValueKey(2)),
+        Tabs.orders => const OrdersScreen(key: ValueKey(3)),
+        Tabs.account => const AccountScreen(key: ValueKey(5)),
         _ => const HomeScreen(key: ValueKey(0)),
       };
 
@@ -112,7 +134,7 @@ class _ShellState extends State<Shell> with SingleTickerProviderStateMixin {
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (_open) {
-          _menu.animateTo(0, curve: Curves.easeOutCubic);
+          _closeMenu();
         } else if (_index != 0) {
           _select(0);
         } else {
@@ -163,8 +185,9 @@ class _ShellState extends State<Shell> with SingleTickerProviderStateMixin {
                     alignment: Alignment.centerLeft,
                     transform: m,
                     child: Container(
-                      clipBehavior: Clip.antiAlias,
+                      clipBehavior: v > 0 ? Clip.antiAlias : Clip.none,
                       decoration: BoxDecoration(
+                        color: v > 0 ? Color.lerp(p.bg.withValues(alpha: 0), p.bg2, (v * 4).clamp(0.0, 1.0)) : null,
                         borderRadius: BorderRadius.circular(32 * v),
                         boxShadow: v > 0
                             ? [BoxShadow(color: Colors.black.withValues(alpha: 0.45 * v), blurRadius: 40, offset: const Offset(-10, 10))]
@@ -179,10 +202,8 @@ class _ShellState extends State<Shell> with SingleTickerProviderStateMixin {
                                 behavior: HitTestBehavior.opaque,
                                 onTap: _toggle,
                                 onHorizontalDragUpdate: (d) => _menu.value = (_menu.value + d.delta.dx / menuW).clamp(0.0, 1.0),
-                                onHorizontalDragEnd: (d) => _menu.animateTo(
-                                  (d.primaryVelocity ?? 0) < -200 || _menu.value < 0.6 ? 0 : 1,
-                                  curve: Curves.easeOutCubic,
-                                ),
+                                onHorizontalDragEnd: (d) =>
+                                    (d.primaryVelocity ?? 0) < -200 || _menu.value < 0.6 ? _closeMenu() : _openMenu(),
                               ),
                             ),
                         ],
@@ -231,10 +252,8 @@ class _ShellState extends State<Shell> with SingleTickerProviderStateMixin {
                       : GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onHorizontalDragUpdate: (d) => _menu.value = (_menu.value + d.delta.dx / menuW).clamp(0.0, 1.0),
-                          onHorizontalDragEnd: (d) => _menu.animateTo(
-                            (d.primaryVelocity ?? 0) > 200 || _menu.value > 0.35 ? 1 : 0,
-                            curve: Curves.easeOutCubic,
-                          ),
+                          onHorizontalDragEnd: (d) =>
+                              (d.primaryVelocity ?? 0) > 200 || _menu.value > 0.35 ? _openMenu() : _closeMenu(),
                         ),
                 ),
               ),
@@ -259,7 +278,6 @@ class _Foreground extends StatelessWidget {
     final s = AppState.instance;
     return Stack(
       children: [
-        const Positioned.fill(child: AnimatedBackdrop()),
         SafeArea(
           bottom: false,
           child: Column(
@@ -273,13 +291,15 @@ class _Foreground extends StatelessWidget {
                       onTap: onMenu,
                       child: Center(child: AnimatedIcon(icon: AnimatedIcons.menu_close, progress: menu, color: p.text)),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     const Expanded(child: SearchPill()),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
+                    const NotificationBell(),
+                    const SizedBox(width: 8),
                     ListenableBuilder(
                       listenable: s,
                       builder: (context, _) => Pressable(
-                        onTap: () => Shell.goTo(context, 4),
+                        onTap: () => Shell.goTo(context, Tabs.account),
                         child: Avatar(
                           name: s.profile?.fullName ?? '',
                           url: s.primaryCard?.str('avatar'),
@@ -343,7 +363,7 @@ class _SideMenu extends StatelessWidget {
     final s = AppState.instance;
     final profile = s.profile;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,9 +398,9 @@ class _SideMenu extends StatelessWidget {
                   child: _MenuItem(dest: _dests[i], active: i == current, onTap: () => onSelect(i)),
                 ),
               ),
-            const Spacer(),
+            const SizedBox(height: 28),
             _stagger(
-              7,
+              8,
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
