@@ -36,10 +36,10 @@ jobs:
       - name: Add packages
         working-directory: build_app
         run: |
-          flutter pub add supabase_flutter google_fonts qr_flutter image_picker url_launcher shared_preferences
+          flutter pub add $(cat ../ci/packages.txt)
           flutter pub add dev:flutter_launcher_icons
 
-      - name: App icon and name
+      - name: App icon, name, fonts and signing
         run: |
           cd build_app && dart run flutter_launcher_icons && cd ..
           python3 ci/patch_android.py
