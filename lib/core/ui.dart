@@ -852,6 +852,12 @@ String friendlyError(Object e) {
     return t('Google login is not set up correctly. Check the Google Cloud setup (package name and SHA-1).');
   }
   if (s.contains('ApiException: 7') || s.contains('network_error')) return t('No internet connection.');
+  if (s.contains('ApiException: 12500') || s.contains('sign_in_failed')) {
+    return t('Google could not sign you in. Update Google Play services and try again.');
+  }
+  if (s.contains('audience') || s.contains('Unacceptable')) {
+    return t('The Google Client ID in Supabase does not match the app.');
+  }
   if (s.contains('Provider') && s.contains('not enabled')) {
     return t('Google login is turned off in Supabase. Turn it on in Authentication → Providers.');
   }

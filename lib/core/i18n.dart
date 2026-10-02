@@ -60,6 +60,11 @@ String tf(String en, Object x) => t(en).replaceAll('{x}', '$x');
 
 const Map<String, Map<String, String>> _tr = {
   'hi': {
+    "Google login failed": "Google लॉगिन नहीं हुआ",
+    "Details (send a screenshot of this to get help):": "विवरण (मदद के लिए इसका स्क्रीनशॉट भेजें):",
+    "OK": "ठीक है",
+    "Google could not sign you in. Update Google Play services and try again.": "Google आपको साइन इन नहीं कर पाया। Google Play services अपडेट करके फिर कोशिश करें।",
+    "The Google Client ID in Supabase does not match the app.": "Supabase में Google Client ID ऐप से मेल नहीं खाता।",
     "or": "या",
     "Continue with Google": "Google से जारी रखें",
     "Google login is not set up yet.": "Google लॉगिन अभी सेट नहीं है।",
@@ -398,6 +403,11 @@ const Map<String, Map<String, String>> _tr = {
     "New connection": "नया कनेक्शन",
   },
   'kn': {
+    "Google login failed": "Google ಲಾಗಿನ್ ವಿಫಲವಾಗಿದೆ",
+    "Details (send a screenshot of this to get help):": "ವಿವರ (ಸಹಾಯಕ್ಕೆ ಇದರ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಕಳುಹಿಸಿ):",
+    "OK": "ಸರಿ",
+    "Google could not sign you in. Update Google Play services and try again.": "Google ಸೈನ್ ಇನ್ ಮಾಡಲಾಗಲಿಲ್ಲ. Google Play services ಅಪ್‌ಡೇಟ್ ಮಾಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "The Google Client ID in Supabase does not match the app.": "Supabase ನಲ್ಲಿರುವ Google Client ID ಆ್ಯಪ್‌ಗೆ ಹೊಂದುತ್ತಿಲ್ಲ.",
     "or": "ಅಥವಾ",
     "Continue with Google": "Google ಮೂಲಕ ಮುಂದುವರಿಸಿ",
     "Google login is not set up yet.": "Google ಲಾಗಿನ್ ಇನ್ನೂ ಸಿದ್ಧವಾಗಿಲ್ಲ.",
@@ -736,6 +746,11 @@ const Map<String, Map<String, String>> _tr = {
     "New connection": "ಹೊಸ ಸಂಪರ್ಕ",
   },
   'ta': {
+    "Google login failed": "Google உள்நுழைவு தோல்வி",
+    "Details (send a screenshot of this to get help):": "விவரம் (உதவிக்கு இதன் ஸ்கிரீன்ஷாட் அனுப்பவும்):",
+    "OK": "சரி",
+    "Google could not sign you in. Update Google Play services and try again.": "Google உள்நுழைய முடியவில்லை. Google Play services-ஐப் புதுப்பித்து மீண்டும் முயலவும்.",
+    "The Google Client ID in Supabase does not match the app.": "Supabase-இல் உள்ள Google Client ID ஆப்புடன் பொருந்தவில்லை.",
     "or": "அல்லது",
     "Continue with Google": "Google மூலம் தொடரவும்",
     "Google login is not set up yet.": "Google உள்நுழைவு இன்னும் அமைக்கப்படவில்லை.",
@@ -1074,6 +1089,11 @@ const Map<String, Map<String, String>> _tr = {
     "New connection": "புதிய இணைப்பு",
   },
   'te': {
+    "Google login failed": "Google లాగిన్ విఫలమైంది",
+    "Details (send a screenshot of this to get help):": "వివరాలు (సహాయం కోసం దీని స్క్రీన్‌షాట్ పంపండి):",
+    "OK": "సరే",
+    "Google could not sign you in. Update Google Play services and try again.": "Google సైన్ ఇన్ చేయలేకపోయింది. Google Play services అప్‌డేట్ చేసి మళ్లీ ప్రయత్నించండి.",
+    "The Google Client ID in Supabase does not match the app.": "Supabaseలోని Google Client ID యాప్‌తో సరిపోలడం లేదు.",
     "or": "లేదా",
     "Continue with Google": "Googleతో కొనసాగండి",
     "Google login is not set up yet.": "Google లాగిన్ ఇంకా సెట్ కాలేదు.",
@@ -1412,6 +1432,11 @@ const Map<String, Map<String, String>> _tr = {
     "New connection": "కొత్త కనెక్షన్",
   },
   'ml': {
+    "Google login failed": "Google ലോഗിൻ പരാജയപ്പെട്ടു",
+    "Details (send a screenshot of this to get help):": "വിശദാംശം (സഹായത്തിന് ഇതിന്റെ സ്ക്രീൻഷോട്ട് അയക്കുക):",
+    "OK": "ശരി",
+    "Google could not sign you in. Update Google Play services and try again.": "Google സൈൻ ഇൻ ചെയ്യാനായില്ല. Google Play services അപ്ഡേറ്റ് ചെയ്ത് വീണ്ടും ശ്രമിക്കുക.",
+    "The Google Client ID in Supabase does not match the app.": "Supabase-ലെ Google Client ID ആപ്പുമായി ചേരുന്നില്ല.",
     "or": "അല്ലെങ്കിൽ",
     "Continue with Google": "Google ഉപയോഗിച്ച് തുടരുക",
     "Google login is not set up yet.": "Google ലോഗിൻ ഇതുവരെ സജ്ജമാക്കിയിട്ടില്ല.",

@@ -71,10 +71,41 @@ class _AuthScreenState extends State<AuthScreen> {
       await Repo.instance.signInWithGoogle(referral: _signUp ? _referral.text : null);
       // On success the app switches to the dashboard by itself.
     } catch (e) {
-      if (mounted) toast(context, friendlyError(e), error: true);
+      if (mounted) _showGoogleError(e);
     } finally {
       if (mounted) setState(() => _googleBusy = false);
     }
+  }
+
+  /// Shows what went wrong with Google login, including the technical details,
+  /// so the exact cause can be found and fixed.
+  void _showGoogleError(Object e) {
+    final p = Palette.of(context);
+    final raw = e.toString();
+    final details = raw.length > 400 ? '${raw.substring(0, 400)}…' : raw;
+    nxDialog<void>(
+      context,
+      title: t('Google login failed'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(friendlyError(e), style: TextStyles.body(p)),
+          const SizedBox(height: 12),
+          Text(t('Details (send a screenshot of this to get help):'), style: TextStyles.label(p)),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(Radii.s)),
+            child: SelectableText(details, style: TextStyle(fontSize: 12.5, color: p.muted, height: 1.4)),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(t('OK'))),
+      ],
+    );
   }
 
   Future<void> _forgot() async {
