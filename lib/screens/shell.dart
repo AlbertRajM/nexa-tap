@@ -404,7 +404,7 @@ class _SideMenu extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t('APPEARANCE'), style: TextStyles.label(p).copyWith(letterSpacing: 1.4, fontSize: 11)),
+                  Text(t('APPEARANCE'), style: TextStyles.label(p).copyWith(letterSpacing: 1.4, fontSize: 12)),
                   const SizedBox(height: 10),
                   ValueListenableBuilder<ThemeMode>(
                     valueListenable: ThemeController.instance,

@@ -524,7 +524,7 @@ class ProfileView extends StatelessWidget {
             child: Column(children: [
               Icon(i, size: 15, color: text),
               const SizedBox(height: 4),
-              Text(l, style: const TextStyle(color: text, fontSize: 10)),
+              Text(l, style: const TextStyle(color: text, fontSize: 11)),
             ]),
           ),
         );
@@ -563,10 +563,10 @@ class ProfileView extends StatelessWidget {
                       children: [
                         Text(name,
                             style: const TextStyle(fontFamily: Fonts.display, color: text, fontSize: 16, fontWeight: FontWeight.w800)),
-                        if (role.isNotEmpty) Text(role, style: const TextStyle(color: muted, fontSize: 11)),
+                        if (role.isNotEmpty) Text(role, style: const TextStyle(color: muted, fontSize: 12)),
                         if (card.str('bio').isNotEmpty) ...[
                           const SizedBox(height: 6),
-                          Text(card.str('bio'), style: const TextStyle(color: text, fontSize: 11, height: 1.4)),
+                          Text(card.str('bio'), style: const TextStyle(color: text, fontSize: 12, height: 1.4)),
                         ],
                         const SizedBox(height: 10),
                         Container(
@@ -622,7 +622,7 @@ class ProfileView extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                             child: Text(r.$2,
-                                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: text, fontSize: 11.5))),
+                                maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: text, fontSize: 12.5))),
                       ]),
                     ),
                   ],

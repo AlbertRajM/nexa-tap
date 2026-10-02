@@ -171,6 +171,24 @@ class _BackdropPainter extends CustomPainter {
       case Backdrop.ripples:
         _rings(canvas, size, t, e);
         break;
+      case Backdrop.sphere:
+        _sphere(canvas, size, t, e);
+        break;
+      case Backdrop.warp:
+        _warp(canvas, size, t, e);
+        break;
+      case Backdrop.terrain:
+        _terrain(canvas, size, t, e);
+        break;
+      case Backdrop.cubes:
+        _cubes(canvas, size, t, e);
+        break;
+      case Backdrop.helix:
+        _helix(canvas, size, t, e);
+        break;
+      case Backdrop.tunnel:
+        _tunnel(canvas, size, t, e);
+        break;
       case Backdrop.none:
         break;
     }
@@ -280,6 +298,236 @@ class _BackdropPainter extends CustomPainter {
       c.drawCircle(center, r, paint);
     }
     _blob(c, center, 140, p.accent, 0.25 * _k);
+  }
+
+  // ---------------------------------------------------------------- 3D scenes
+
+  /// Motion phase that speeds up while the user taps or types, without jumps.
+  static final _phases = Expando<List<double>>();
+  double _phase(double t, double e) {
+    final st = _phases[time] ??= <double>[t, 0.0];
+    final dt = (t - st[0]).clamp(0.0, 0.1);
+    st[0] = t;
+    st[1] += dt * (1 + e * 3.5);
+    return st[1];
+  }
+
+  Color get _mark => p.isDark ? p.accent : p.accent2;
+  Color get _second => p.isDark ? p.accent2 : p.accent2.withValues(alpha: 0.8);
+
+  static final List<List<double>> _globe = () {
+    const n = 260;
+    final golden = math.pi * (3 - math.sqrt(5));
+    return List.generate(n, (i) {
+      final y = 1 - (i / (n - 1)) * 2;
+      final r = math.sqrt(1 - y * y);
+      final th = golden * i;
+      return [math.cos(th) * r, y, math.sin(th) * r];
+    });
+  }();
+
+  void _sphere(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e);
+    final center = Offset(s.width * 0.5, s.height * 0.34);
+    final radius = s.width * 0.44 * (1 + e * 0.04);
+    _blob(c, center, radius * 1.5, _second, 0.22 * _k);
+    final ry = ph * 0.28;
+    final rx = 0.42 + 0.12 * math.sin(t * 0.3);
+    final cy = math.cos(ry), sy = math.sin(ry), cx = math.cos(rx), sx = math.sin(rx);
+    final dot = Paint();
+    for (final v in _globe) {
+      final x1 = v[0] * cy + v[2] * sy;
+      final z1 = -v[0] * sy + v[2] * cy;
+      final y2 = v[1] * cx - z1 * sx;
+      final z2 = v[1] * sx + z1 * cx;
+      final persp = 2.8 / (2.8 - z2);
+      final depth = (z2 + 1) / 2; // 0 back .. 1 front
+      dot.color = Color.lerp(_second, _mark, depth)!.withValues(alpha: (0.15 + depth * 0.75) * _k);
+      c.drawCircle(center + Offset(x1, y2) * radius * persp, 0.8 + depth * 1.9, dot);
+    }
+    // Orbit ring with a satellite, like a signal going round.
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = _mark.withValues(alpha: 0.28 * _k);
+    final orbit = Rect.fromCenter(center: center, width: radius * 2.4, height: radius * 0.62);
+    c.save();
+    c.translate(center.dx, center.dy);
+    c.rotate(-0.28);
+    c.translate(-center.dx, -center.dy);
+    c.drawOval(orbit, ring);
+    final a = ph * 0.9;
+    final sat = Offset(center.dx + math.cos(a) * orbit.width / 2, center.dy + math.sin(a) * orbit.height / 2);
+    _blob(c, sat, 22, _mark, 0.55 * _k);
+    c.drawCircle(sat, 3, Paint()..color = _mark.withValues(alpha: 0.95 * _k));
+    c.restore();
+  }
+
+  static final List<List<double>> _stars =
+      List.generate(170, (_) => [_rand.nextDouble() * 2 - 1, _rand.nextDouble() * 2 - 1, _rand.nextDouble()]);
+
+  void _warp(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e) * 0.11;
+    final center = Offset(s.width / 2, s.height * 0.4);
+    _blob(c, center, s.width * 0.55, _second, 0.2 * _k);
+    final paint = Paint()..strokeCap = StrokeCap.round;
+    final scale = s.longestSide * 0.5;
+    for (final st in _stars) {
+      final d = ((st[2] - ph) % 1 + 1) % 1 * 0.97 + 0.03; // 1 far .. 0.03 near
+      final d2 = math.min(1.0, d + 0.025 + e * 0.04);
+      final p1 = center + Offset(st[0], st[1]) * (scale * 0.12 / d);
+      final p2 = center + Offset(st[0], st[1]) * (scale * 0.12 / d2);
+      if (p1.dx < -20 || p1.dy < -20 || p1.dx > s.width + 20 || p1.dy > s.height + 20) continue;
+      final near = (1 - d);
+      paint
+        ..strokeWidth = 0.6 + near * 2.4
+        ..color = (st[0] > 0 ? _mark : _second).withValues(alpha: (0.1 + near * 0.8) * _k);
+      c.drawLine(p2, p1, paint);
+    }
+  }
+
+  void _terrain(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e) * 0.07;
+    final horizon = s.height * 0.36;
+    _blob(c, Offset(s.width / 2, horizon), s.width * 0.7, _second, 0.25 * _k);
+    const rows = 34, cols = 36;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+    for (var r = rows - 1; r >= 0; r--) {
+      final z = 0.16 + (r / (rows - 1)) * 0.84; // 1 far .. 0.16 near
+      final zz = z + ph;
+      final sc = 0.16 / z;
+      final path = Path();
+      for (var k = 0; k <= cols; k++) {
+        final x = k / cols * 2 - 1;
+        final hgt = math.sin(x * 3.1 + zz * 5.0) * 0.5 +
+            math.sin(x * 6.3 - zz * 3.4 + 1.3) * 0.28 +
+            math.sin(zz * 9.0 + x) * 0.22;
+        final ridge = 0.35 + 0.65 * x * x; // valley in the middle
+        final sx = s.width / 2 + x * sc * s.width * 2.8;
+        final sy = horizon + sc * (s.height - horizon) * 0.95 - (hgt + 1) * ridge * sc * s.height * 0.28;
+        if (k == 0) {
+          path.moveTo(sx, sy);
+        } else {
+          path.lineTo(sx, sy);
+        }
+      }
+      final near = 1 - (z - 0.16) / 0.84;
+      paint
+        ..strokeWidth = 0.7 + near * 1.3
+        ..color = Color.lerp(_second, _mark, near)!.withValues(alpha: (0.12 + near * 0.55) * _k);
+      c.drawPath(path, paint);
+    }
+  }
+
+  static const _cubeEdges = [
+    [0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7],
+  ];
+  static final List<List<double>> _cubeList = List.generate(
+    8,
+    (i) => [
+      0.12 + _rand.nextDouble() * 0.76, // x
+      0.06 + (i / 8) * 0.9 + _rand.nextDouble() * 0.05, // y
+      0.06 + _rand.nextDouble() * 0.1, // size
+      0.3 + _rand.nextDouble() * 0.5, // spin
+      _rand.nextDouble() * 6, // phase
+    ],
+  );
+
+  void _cubes(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e);
+    final edge = Paint()..strokeWidth = 1.3;
+    final face = Paint();
+    for (var n = 0; n < _cubeList.length; n++) {
+      final q = _cubeList[n];
+      final size = q[2] * s.width;
+      final center = Offset(q[0] * s.width + math.sin(t * 0.4 + q[4]) * 14, q[1] * s.height + math.cos(t * 0.5 + q[4]) * 18);
+      final a = ph * q[3] + q[4], b = ph * q[3] * 0.7 + q[4] * 2;
+      final ca = math.cos(a), sa = math.sin(a), cb = math.cos(b), sb = math.sin(b);
+      final pts = <Offset>[];
+      final zs = <double>[];
+      for (var i = 0; i < 8; i++) {
+        // Vertices 0-3: back square, 4-7: front square.
+        final px = (i % 4 == 1 || i % 4 == 2) ? 1.0 : -1.0;
+        final py = (i % 4 >= 2) ? 1.0 : -1.0;
+        final pz = i < 4 ? -1.0 : 1.0;
+        final x1 = px * ca + pz * sa;
+        final z1 = -px * sa + pz * ca;
+        final y2 = py * cb - z1 * sb;
+        final z2 = py * sb + z1 * cb;
+        final persp = 4 / (4 - z2);
+        pts.add(center + Offset(x1, y2) * size * persp);
+        zs.add(z2);
+      }
+      final col = n.isEven ? _mark : _second;
+      face.color = col.withValues(alpha: 0.05 * _k);
+      c.drawPath(Path()..addPolygon([pts[4], pts[5], pts[6], pts[7]], true), face);
+      for (final ed in _cubeEdges) {
+        final depth = ((zs[ed[0]] + zs[ed[1]]) / 2 + 1.8) / 3.6;
+        edge.color = col.withValues(alpha: (0.15 + depth * 0.6) * _k);
+        c.drawLine(pts[ed[0]], pts[ed[1]], edge);
+      }
+    }
+  }
+
+  void _helix(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e);
+    void strand(double cy, double amp, double tilt, double speed, double strength) {
+      const n = 46;
+      final dot = Paint();
+      final rung = Paint()..strokeWidth = 1;
+      for (var i = 0; i <= n; i++) {
+        final f = i / n;
+        final x = -s.width * 0.1 + f * s.width * 1.2;
+        final baseY = cy + (f - 0.5) * tilt;
+        final ang = i * 0.36 + ph * speed;
+        final sn = math.sin(ang), cs = math.cos(ang);
+        final p1 = Offset(x, baseY + sn * amp);
+        final p2 = Offset(x, baseY - sn * amp);
+        final d1 = (cs + 1) / 2, d2 = (-cs + 1) / 2;
+        if (i.isEven) {
+          rung.shader = LinearGradient(colors: [
+            _mark.withValues(alpha: (0.08 + d1 * 0.3) * strength * _k),
+            _second.withValues(alpha: (0.08 + d2 * 0.3) * strength * _k),
+          ]).createShader(Rect.fromPoints(p1, p2 + const Offset(1, 1)));
+          c.drawLine(p1, p2, rung);
+        }
+        dot.color = _mark.withValues(alpha: (0.2 + d1 * 0.75) * strength * _k);
+        c.drawCircle(p1, 1.2 + d1 * 3.2, dot);
+        dot.color = _second.withValues(alpha: (0.2 + d2 * 0.75) * strength * _k);
+        c.drawCircle(p2, 1.2 + d2 * 3.2, dot);
+      }
+    }
+
+    _blob(c, Offset(s.width * 0.7, s.height * 0.25), s.width * 0.7, _second, 0.18 * _k);
+    strand(s.height * 0.26, s.width * 0.13, s.height * 0.12, 0.9, 1.0);
+    strand(s.height * 0.74, s.width * 0.09, -s.height * 0.08, -0.6, 0.55);
+  }
+
+  void _tunnel(Canvas c, Size s, double t, double e) {
+    final ph = _phase(t, e) * 0.09;
+    final center = Offset(s.width * (0.5 + 0.08 * math.sin(t * 0.35)), s.height * (0.4 + 0.05 * math.cos(t * 0.28)));
+    _blob(c, center, s.width * 0.35, _mark, 0.22 * _k);
+    const n = 16;
+    final paint = Paint()..style = PaintingStyle.stroke;
+    for (var k = 0; k < n; k++) {
+      final d = (((k / n) - ph) % 1 + 1) % 1 * 0.96 + 0.04;
+      final size = s.width * 0.1 / d;
+      if (size > s.longestSide * 2.2) continue;
+      final near = 1 - d;
+      paint
+        ..strokeWidth = 0.6 + near * 2.6
+        ..color = (k.isEven ? _mark : _second).withValues(alpha: (0.06 + near * 0.6) * _k);
+      c.save();
+      c.translate(center.dx, center.dy);
+      c.rotate(d * 1.4 + t * 0.08);
+      c.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: size, height: size * 1.25), Radius.circular(size * 0.16)),
+        paint,
+      );
+      c.restore();
+    }
   }
 
   void _touches(Canvas c, double t) {

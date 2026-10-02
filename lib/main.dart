@@ -48,7 +48,15 @@ class NexaApp extends StatelessWidget {
             systemNavigationBarColor: p.surface,
             systemNavigationBarIconBrightness: p.isDark ? Brightness.light : Brightness.dark,
           ));
-          return child!;
+          // Keep text readable but stop very large phone font settings from squeezing the layout.
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.12)),
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(leadingDistribution: TextLeadingDistribution.even),
+              child: child!,
+            ),
+          );
         },
         home: AuthGate(welcomeSeen: welcomeSeen),
       ),
@@ -74,7 +82,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1700), () {
+    Future.delayed(const Duration(milliseconds: 2300), () {
       if (mounted) setState(() => _splashDone = true);
     });
   }

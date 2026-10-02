@@ -530,7 +530,7 @@ class _Insights extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           if (counts[i] > 0)
-                            Text('${counts[i]}', style: TextStyle(fontSize: 10, color: p.muted, fontWeight: FontWeight.w600)),
+                            Text('${counts[i]}', style: TextStyle(fontSize: 11, color: p.muted, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 3),
                           TweenAnimationBuilder<double>(
                             tween: Tween(begin: 0, end: counts[i] / maxV),
@@ -545,7 +545,7 @@ class _Insights extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text(labels[i], style: TextStyle(fontSize: 10.5, color: p.faint)),
+                          Text(labels[i], style: TextStyle(fontSize: 11.5, color: p.faint)),
                         ],
                       ),
                     ),

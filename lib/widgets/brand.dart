@@ -147,7 +147,7 @@ class Wordmark extends StatelessWidget {
             fontSize: size,
             fontWeight: FontWeight.w800,
             color: p.text,
-            letterSpacing: -0.5,
+            letterSpacing: 0,
           ),
         ),
       ],
@@ -187,9 +187,52 @@ class SplashView extends StatelessWidget {
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
                       color: p.text,
-                      letterSpacing: -0.8,
+                      letterSpacing: 0.2,
+                      height: 1.1,
                     ),
                   ),
+                ),
+                const SizedBox(height: 14),
+                // Short tagline under the logo: a thin line draws in, then the words fade up.
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 1300),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, _) {
+                    final line = (v / 0.5).clamp(0.0, 1.0);
+                    final words = ((v - 0.35) / 0.65).clamp(0.0, 1.0);
+                    final mark = p.isDark ? p.accent : p.accent2;
+                    return Column(
+                      children: [
+                        Container(
+                          width: 64 * line,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: mark,
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: [BoxShadow(color: mark.withValues(alpha: 0.6), blurRadius: 10)],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Opacity(
+                          opacity: words,
+                          child: Transform.translate(
+                            offset: Offset(0, 8 * (1 - words)),
+                            child: Text(
+                              t('Tap · Share · Connect').toUpperCase(),
+                              style: TextStyle(
+                                fontFamily: Fonts.body,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: LangController.instance.value == 'en' ? 3.2 : 0.4,
+                                color: p.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -271,7 +314,7 @@ class _BrandHeaderState extends State<BrandHeader> with SingleTickerProviderStat
             children: [
               Text('nexa tap',
                   style: TextStyle(
-                      fontFamily: Fonts.display, fontSize: 20, fontWeight: FontWeight.w800, color: p.text, letterSpacing: -0.5)),
+                      fontFamily: Fonts.display, fontSize: 20, fontWeight: FontWeight.w800, color: p.text, letterSpacing: 0)),
               const SizedBox(height: 2),
               Text(t('Tap · Share · Connect'), style: TextStyle(fontSize: 12.5, color: p.muted, letterSpacing: 0.4)),
             ],

@@ -52,7 +52,6 @@ class _SearchPillState extends State<SearchPill> {
 
   @override
   Widget build(BuildContext context) {
-    final p = Palette.of(context);
     return Pressable(
       scale: 0.97,
       onTap: () => Navigator.of(context).push(_searchRoute()),
@@ -64,10 +63,10 @@ class _SearchPillState extends State<SearchPill> {
             child: Container(
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(color: p.surfaceSolid, borderRadius: BorderRadius.circular(26)),
+              decoration: BoxDecoration(color: NeonBorder.fill, borderRadius: BorderRadius.circular(26)),
               child: Row(
                 children: [
-                  Icon(Ic.search, size: 20, color: p.muted),
+                  const Icon(Ic.search, size: 20, color: NeonBorder.lime),
                   const SizedBox(width: 8),
                   Expanded(
                     child: AnimatedSwitcher(
@@ -83,7 +82,7 @@ class _SearchPillState extends State<SearchPill> {
                         key: ValueKey(_i),
                         alignment: Alignment.centerLeft,
                         child: Text(t(_hints[_i]),
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.faint, fontSize: 14.5)),
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NeonBorder.hint, fontSize: 14.5)),
                       ),
                     ),
                   ),
@@ -91,9 +90,9 @@ class _SearchPillState extends State<SearchPill> {
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: p.border),
+                      border: Border.all(color: NeonBorder.lime.withValues(alpha: 0.35)),
                     ),
-                    child: Icon(Ic.arrowUpLeft, size: 13, color: p.muted),
+                    child: const Icon(Ic.arrowUpLeft, size: 13, color: NeonBorder.lime),
                   ),
                 ],
               ),
@@ -274,18 +273,18 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: Container(
                           height: 48,
                           padding: const EdgeInsets.only(left: 14, right: 4),
-                          decoration: BoxDecoration(color: p.surfaceSolid, borderRadius: BorderRadius.circular(26)),
+                          decoration: BoxDecoration(color: NeonBorder.fill, borderRadius: BorderRadius.circular(26)),
                           child: Row(
                             children: [
-                              Icon(Ic.search, size: 21, color: p.isDark ? p.accent : p.accent2),
+                              const Icon(Ic.search, size: 21, color: NeonBorder.lime),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: TextField(
                                   controller: _q,
                                   focusNode: _focus,
                                   textInputAction: TextInputAction.search,
-                                  style: TextStyle(fontSize: 16, color: p.text, fontWeight: FontWeight.w500),
-                                  cursorColor: p.isDark ? p.accent : p.accent2,
+                                  style: const TextStyle(fontSize: 16, color: NeonBorder.text, fontWeight: FontWeight.w500),
+                                  cursorColor: NeonBorder.lime,
                                   onChanged: (_) {
                                     Energy.instance.bump(0.12);
                                     setState(() {});
@@ -297,7 +296,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     isDense: true,
                                     border: InputBorder.none,
                                     hintText: t('Search pages, orders, settings'),
-                                    hintStyle: TextStyle(color: p.faint, fontSize: 15),
+                                    hintStyle: const TextStyle(color: NeonBorder.hint, fontSize: 15),
                                   ),
                                 ),
                               ),
@@ -305,7 +304,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 scale: _q.text.isEmpty ? 0 : 1,
                                 duration: const Duration(milliseconds: 180),
                                 child: IconButton(
-                                  icon: Icon(Ic.close, size: 19, color: p.muted),
+                                  icon: const Icon(Ic.close, size: 19, color: NeonBorder.hint),
                                   onPressed: () {
                                     _q.clear();
                                     setState(() {});
@@ -336,7 +335,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     children: [
                       Text(query.isEmpty ? t('SUGGESTED') : tf('{x} RESULTS', results.length),
-                          style: TextStyles.label(p).copyWith(letterSpacing: 1.4, fontSize: 11.5)),
+                          style: TextStyles.label(p).copyWith(letterSpacing: 1.4, fontSize: 12.5)),
                       const SizedBox(height: Space.m),
                       for (final (i, item) in results.indexed)
                         FadeIn(

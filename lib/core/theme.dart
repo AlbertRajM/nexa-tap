@@ -115,22 +115,36 @@ class Radii {
 
 /// Display text in Syne (wide, bold), everything else in Outfit.
 class TextStyles {
+  // "even" leading keeps text vertically centred in buttons, chips and rows.
+  static const _even = TextLeadingDistribution.even;
+
   static TextStyle display(Palette p) => TextStyle(
-      fontFamily: Fonts.display, fontSize: 30, fontWeight: FontWeight.w800, color: p.text, height: 1.12, letterSpacing: -0.6);
+      fontFamily: Fonts.display, fontSize: 30, fontWeight: FontWeight.w800, color: p.text, height: 1.2, letterSpacing: 0, leadingDistribution: _even);
   static TextStyle title(Palette p) => TextStyle(
-      fontFamily: Fonts.display, fontSize: 24, fontWeight: FontWeight.w800, color: p.text, height: 1.15, letterSpacing: -0.4);
-  static TextStyle h2(Palette p) =>
-      TextStyle(fontFamily: Fonts.display, fontSize: 18, fontWeight: FontWeight.w700, color: p.text, letterSpacing: -0.2);
-  static TextStyle h3(Palette p) =>
-      TextStyle(fontFamily: Fonts.body, fontSize: 16, fontWeight: FontWeight.w600, color: p.text);
-  static TextStyle body(Palette p) =>
-      TextStyle(fontFamily: Fonts.body, fontSize: 15, fontWeight: FontWeight.w400, color: p.text, height: 1.45);
-  static TextStyle muted(Palette p) =>
-      TextStyle(fontFamily: Fonts.body, fontSize: 14, fontWeight: FontWeight.w400, color: p.muted, height: 1.4);
+      fontFamily: Fonts.display, fontSize: 24, fontWeight: FontWeight.w800, color: p.text, height: 1.22, letterSpacing: 0, leadingDistribution: _even);
+  static TextStyle h2(Palette p) => TextStyle(
+      fontFamily: Fonts.display, fontSize: 18, fontWeight: FontWeight.w700, color: p.text, height: 1.3, letterSpacing: 0.1, leadingDistribution: _even);
+  static TextStyle h3(Palette p) => TextStyle(
+      fontFamily: Fonts.body, fontSize: 16, fontWeight: FontWeight.w600, color: p.text, height: 1.3, letterSpacing: 0.1, leadingDistribution: _even);
+  static TextStyle body(Palette p) => TextStyle(
+      fontFamily: Fonts.body, fontSize: 15, fontWeight: FontWeight.w400, color: p.text, height: 1.5, letterSpacing: 0.15, leadingDistribution: _even);
+  static TextStyle muted(Palette p) => TextStyle(
+      fontFamily: Fonts.body, fontSize: 14, fontWeight: FontWeight.w400, color: p.muted, height: 1.45, letterSpacing: 0.15, leadingDistribution: _even);
   static TextStyle label(Palette p) => TextStyle(
-      fontFamily: Fonts.body, fontSize: 12.5, fontWeight: FontWeight.w500, color: p.muted, letterSpacing: 0.3);
-  static TextStyle number(Palette p) =>
-      TextStyle(fontFamily: Fonts.display, fontSize: 24, fontWeight: FontWeight.w800, color: p.text, letterSpacing: -0.5);
+      fontFamily: Fonts.body, fontSize: 12.5, fontWeight: FontWeight.w500, color: p.muted, height: 1.3, letterSpacing: 0.4, leadingDistribution: _even);
+  static TextStyle number(Palette p) => TextStyle(
+      fontFamily: Fonts.display, fontSize: 24, fontWeight: FontWeight.w800, color: p.text, height: 1.15, letterSpacing: 0, leadingDistribution: _even);
+}
+
+TextTheme _evenText(TextTheme tt) {
+  TextStyle? f(TextStyle? s) => s?.copyWith(leadingDistribution: TextLeadingDistribution.even, letterSpacing: 0.1);
+  return tt.copyWith(
+    displayLarge: f(tt.displayLarge), displayMedium: f(tt.displayMedium), displaySmall: f(tt.displaySmall),
+    headlineLarge: f(tt.headlineLarge), headlineMedium: f(tt.headlineMedium), headlineSmall: f(tt.headlineSmall),
+    titleLarge: f(tt.titleLarge), titleMedium: f(tt.titleMedium), titleSmall: f(tt.titleSmall),
+    bodyLarge: f(tt.bodyLarge), bodyMedium: f(tt.bodyMedium), bodySmall: f(tt.bodySmall),
+    labelLarge: f(tt.labelLarge), labelMedium: f(tt.labelMedium), labelSmall: f(tt.labelSmall),
+  );
 }
 
 ThemeData buildTheme(Palette p) {
@@ -151,7 +165,7 @@ ThemeData buildTheme(Palette p) {
       outline: p.border,
       outlineVariant: p.border,
     ),
-    textTheme: base.textTheme.apply(bodyColor: p.text, displayColor: p.text, fontFamily: Fonts.body),
+    textTheme: _evenText(base.textTheme.apply(bodyColor: p.text, displayColor: p.text, fontFamily: Fonts.body)),
     dividerColor: p.border,
     splashFactory: InkRipple.splashFactory,
     highlightColor: Colors.transparent,
@@ -188,11 +202,17 @@ class ThemeController extends ValueNotifier<ThemeMode> {
 }
 
 /// Animated backgrounds the user can pick from.
-enum Backdrop { aurora, constellation, waves, grid, ripples, none }
+enum Backdrop { aurora, sphere, warp, terrain, cubes, helix, tunnel, constellation, waves, grid, ripples, none }
 
 extension BackdropX on Backdrop {
   String get label => switch (this) {
         Backdrop.aurora => 'Aurora',
+        Backdrop.sphere => 'Globe',
+        Backdrop.warp => 'Warp',
+        Backdrop.terrain => 'Peaks',
+        Backdrop.cubes => 'Prisms',
+        Backdrop.helix => 'Helix',
+        Backdrop.tunnel => 'Tunnel',
         Backdrop.constellation => 'Network',
         Backdrop.waves => 'Waves',
         Backdrop.grid => 'Horizon',
@@ -201,22 +221,28 @@ extension BackdropX on Backdrop {
       };
   String get blurb => switch (this) {
         Backdrop.aurora => t('Slow glowing colour fields'),
+        Backdrop.sphere => t('A 3D globe of light that turns slowly'),
+        Backdrop.warp => t('Fly through stars in 3D'),
+        Backdrop.terrain => t('3D mountains of light that roll'),
+        Backdrop.cubes => t('Glass cubes floating in 3D'),
+        Backdrop.helix => t('A turning 3D double helix'),
+        Backdrop.tunnel => t('A neon tunnel moving toward you'),
         Backdrop.constellation => t('Connected points that drift'),
         Backdrop.waves => t('Flowing signal lines'),
-        Backdrop.grid => '3D grid moving toward you',
+        Backdrop.grid => t('3D grid moving toward you'),
         Backdrop.ripples => t('Rings like an NFC tap'),
         Backdrop.none => t('No motion, saves battery'),
       };
 }
 
 class BackdropController extends ValueNotifier<Backdrop> {
-  BackdropController() : super(Backdrop.aurora);
+  BackdropController() : super(Backdrop.sphere);
   static final instance = BackdropController();
   static const _key = 'backdrop';
 
   Future<void> load() async {
     final v = (await _prefs()).getString(_key);
-    value = Backdrop.values.firstWhere((b) => b.name == v, orElse: () => Backdrop.aurora);
+    value = Backdrop.values.firstWhere((b) => b.name == v, orElse: () => Backdrop.sphere);
   }
 
   Future<void> set(Backdrop b) async {

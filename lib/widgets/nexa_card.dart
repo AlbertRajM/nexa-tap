@@ -384,7 +384,7 @@ class _FrontContent extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontFamily: Fonts.display, color: design.fg, fontSize: 21 * s, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+                fontFamily: Fonts.display, color: design.fg, fontSize: 21 * s, fontWeight: FontWeight.w800, letterSpacing: 0),
           ),
           if (title.isNotEmpty) ...[
             SizedBox(height: 3 * s),

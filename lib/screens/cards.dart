@@ -236,7 +236,7 @@ class _Controls extends StatelessWidget {
                               Text(a.$3,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyles.muted(p).copyWith(fontSize: 11.5)),
+                                  style: TextStyles.muted(p).copyWith(fontSize: 12.5)),
                             ],
                           ),
                         ),

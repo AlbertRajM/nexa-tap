@@ -578,7 +578,7 @@ class _StepBar extends StatelessWidget {
                               ? Icon(Ic.check, size: 12, color: p.onAccent)
                               : Text('${i + 1}',
                                   style: TextStyle(
-                                      fontSize: 10.5,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: i == current ? p.link : p.muted)),
                         ),
@@ -587,7 +587,7 @@ class _StepBar extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12.5,
                                 fontWeight: i == current ? FontWeight.w600 : FontWeight.w500,
                                 color: i == current ? p.text : p.muted)),
                       ],
@@ -697,7 +697,7 @@ class _DesignTile extends StatelessWidget {
                         ],
                       ),
                       Text(t(design.finish),
-                          maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 11.5)),
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: p.muted, fontSize: 12.5)),
                     ],
                   ),
                 ),
