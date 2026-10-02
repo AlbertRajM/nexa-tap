@@ -7,12 +7,14 @@ import '../core/theme.dart';
 import '../core/ui.dart';
 import '../data/models.dart';
 import '../data/repo.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 Future<void> showShareSheet(BuildContext context, Profile profile, CardProfile card) {
   final p = Palette.of(context);
   return showModalBottomSheet(
     context: context,
-    backgroundColor: p.surface,
+    backgroundColor: p.surfaceSolid,
     isScrollControlled: true,
     showDragHandle: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.xl))),
@@ -30,7 +32,7 @@ class _ShareSheet extends StatelessWidget {
     try {
       ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {}
-    if (!ok && context.mounted) toast(context, 'Could not open the app', error: true);
+    if (!ok && context.mounted) toast(context, t('Could not open the app'), error: true);
   }
 
   @override
@@ -45,9 +47,9 @@ class _ShareSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Share your ${card.type.label.toLowerCase()} profile', style: TextStyles.h2(p)),
+            Text(tf('Share your {x} profile', card.type.label.toLowerCase()), style: TextStyles.h2(p)),
             const SizedBox(height: 4),
-            Text('Let them scan the code, or send the link.', style: TextStyles.muted(p)),
+            Text(t('Let them scan the code, or send the link.'), style: TextStyles.muted(p)),
             const SizedBox(height: Space.xl),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.9, end: 1),
@@ -66,9 +68,9 @@ class _ShareSheet extends StatelessWidget {
                   size: 200,
                   padding: EdgeInsets.zero,
                   backgroundColor: Colors.white,
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF111317)),
+                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: Color(0xFF0B0D1A)),
                   dataModuleStyle:
-                      const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF111317)),
+                      const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Color(0xFF0B0D1A)),
                 ),
               ),
             ),
@@ -88,12 +90,12 @@ class _ShareSheet extends StatelessWidget {
                         style: TextStyle(color: p.muted, fontSize: 13)),
                   ),
                   IconButton(
-                    tooltip: 'Copy link',
-                    icon: Icon(Icons.copy_rounded, size: 19, color: p.text),
+                    tooltip: t('Copy link'),
+                    icon: Icon(Ic.copy, size: 19, color: p.text),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: link));
                       HapticFeedback.lightImpact();
-                      toast(context, 'Link copied');
+                      toast(context, t('Link copied'));
                     },
                   ),
                 ],
@@ -101,8 +103,8 @@ class _ShareSheet extends StatelessWidget {
             ),
             const SizedBox(height: Space.l),
             NxButton(
-              'Send on WhatsApp',
-              icon: Icons.chat_outlined,
+              t('Send on WhatsApp'),
+              icon: Ic.chat,
               onPressed: () => _open(context, Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}')),
             ),
             const SizedBox(height: 10),
@@ -111,7 +113,7 @@ class _ShareSheet extends StatelessWidget {
                 Expanded(
                   child: NxButton(
                     'SMS',
-                    icon: Icons.sms_outlined,
+                    icon: Ic.sms,
                     kind: BtnKind.secondary,
                     onPressed: () => _open(context, Uri.parse('sms:?body=${Uri.encodeComponent(message)}')),
                   ),
@@ -119,8 +121,8 @@ class _ShareSheet extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: NxButton(
-                    'Preview',
-                    icon: Icons.open_in_new_rounded,
+                    t('Preview'),
+                    icon: Ic.external,
                     kind: BtnKind.secondary,
                     onPressed: () => _open(context, Uri.parse(link)),
                   ),

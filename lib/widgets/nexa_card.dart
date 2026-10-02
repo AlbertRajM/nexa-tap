@@ -4,16 +4,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../core/theme.dart';
 import '../data/models.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
-/// Renders the physical card. Tap to flip, drag to tilt.
+/// The physical card in 3D. It sways gently on its own, tilts when dragged,
+/// flips when tapped, and a light sheen moves across the surface.
 class NexaCard extends StatefulWidget {
   final CardProfile card;
   final String link;
   final bool interactive;
+  final bool idle;
+  final bool tiltable;
   final String? designOverride;
 
-  const NexaCard({super.key, required this.card, required this.link, this.interactive = true, this.designOverride});
+  const NexaCard({
+    super.key,
+    required this.card,
+    required this.link,
+    this.interactive = true,
+    this.idle = true,
+    this.tiltable = true,
+    this.designOverride,
+  });
 
   @override
   State<NexaCard> createState() => _NexaCardState();
@@ -21,29 +35,35 @@ class NexaCard extends StatefulWidget {
 
 class _NexaCardState extends State<NexaCard> with TickerProviderStateMixin {
   late final AnimationController _flip =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
   late final AnimationController _tiltBack =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 380));
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 520));
+  late final AnimationController _idle =
+      AnimationController(vsync: this, duration: const Duration(seconds: 7));
   Offset _tilt = Offset.zero;
   Offset _tiltStart = Offset.zero;
+  bool _dragging = false;
 
   @override
   void initState() {
     super.initState();
     _tiltBack.addListener(() {
-      setState(() => _tilt = Offset.lerp(_tiltStart, Offset.zero, Curves.easeOutBack.transform(_tiltBack.value))!);
+      setState(() => _tilt = Offset.lerp(_tiltStart, Offset.zero, Curves.elasticOut.transform(_tiltBack.value))!);
     });
+    if (widget.idle) _idle.repeat();
   }
 
   @override
   void dispose() {
     _flip.dispose();
     _tiltBack.dispose();
+    _idle.dispose();
     super.dispose();
   }
 
   void _toggle() {
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
+    Energy.instance.bump(0.6);
     if (_flip.status == AnimationStatus.completed || _flip.status == AnimationStatus.forward) {
       _flip.reverse();
     } else {
@@ -58,41 +78,49 @@ class _NexaCardState extends State<NexaCard> with TickerProviderStateMixin {
       final w = c.maxWidth;
       final h = w / 1.586;
       final child = AnimatedBuilder(
-        animation: _flip,
+        animation: Listenable.merge([_flip, _idle]),
         builder: (context, _) {
-          final t = Curves.easeInOutCubic.transform(_flip.value);
+          final t = Curves.easeInOutBack.transform(_flip.value).clamp(0.0, 1.0);
           final angle = t * math.pi;
           final showBack = angle > math.pi / 2;
+          final idleA = _dragging || !widget.idle ? 0.0 : _idle.value * 2 * math.pi;
+          final ry = angle + _tilt.dx + 0.10 * math.sin(idleA);
+          final rx = -_tilt.dy + 0.05 * math.cos(idleA);
           final m = Matrix4.identity()
-            ..setEntry(3, 2, 0.0012)
-            ..rotateX(-_tilt.dy)
-            ..rotateY(angle + _tilt.dx);
-          return Transform(
-            alignment: Alignment.center,
-            transform: m,
-            child: showBack
-                ? Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.rotationY(math.pi),
-                    child: _CardBack(design: design, link: widget.link, w: w, h: h),
-                  )
-                : _CardFront(design: design, card: widget.card, w: w, h: h),
-          );
+            ..setEntry(3, 2, 0.0014)
+            ..rotateX(rx)
+            ..rotateY(ry);
+          // Sheen follows the tilt and drifts slowly.
+          final sheen = (math.sin(idleA) * 0.6 + _tilt.dx * 4 - _tilt.dy * 2).clamp(-1.5, 1.5);
+          final face = showBack
+              ? Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.rotationY(math.pi),
+                  child: _CardBack(design: design, link: widget.link, w: w, h: h, sheen: -sheen),
+                )
+              : _CardFront(design: design, card: widget.card, w: w, h: h, sheen: sheen);
+          return Transform(alignment: Alignment.center, transform: m, child: face);
         },
       );
       if (!widget.interactive) return SizedBox(width: w, height: h, child: child);
+      if (!widget.tiltable) {
+        return GestureDetector(onTap: _toggle, child: SizedBox(width: w, height: h, child: child));
+      }
       return GestureDetector(
         onTap: _toggle,
+        onPanStart: (_) => setState(() => _dragging = true),
         onPanUpdate: (d) {
           _tiltBack.stop();
           setState(() {
             _tilt = Offset(
-              (_tilt.dx + d.delta.dx / 400).clamp(-0.22, 0.22),
-              (_tilt.dy + d.delta.dy / 400).clamp(-0.22, 0.22),
+              (_tilt.dx + d.delta.dx / 320).clamp(-0.45, 0.45),
+              (_tilt.dy + d.delta.dy / 320).clamp(-0.35, 0.35),
             );
           });
+          Energy.instance.bump(0.03);
         },
         onPanEnd: (_) {
+          _dragging = false;
           _tiltStart = _tilt;
           _tiltBack.forward(from: 0);
         },
@@ -103,99 +131,203 @@ class _NexaCardState extends State<NexaCard> with TickerProviderStateMixin {
 }
 
 BoxDecoration _cardBox(CardDesign d) => BoxDecoration(
-      color: d.bg,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: d.fg.withValues(alpha: 0.06)),
+      color: d.gradient == null ? d.bg : null,
+      gradient: d.gradient == null
+          ? null
+          : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: d.gradient!),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       boxShadow: [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 12)),
+        BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 30, offset: const Offset(0, 18)),
+        BoxShadow(color: d.line.withValues(alpha: 0.18), blurRadius: 40, spreadRadius: -6),
       ],
     );
+
+/// Light reflection band that moves across the card.
+class _Sheen extends StatelessWidget {
+  final double pos;
+  const _Sheen(this.pos);
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-1.4 + pos, -1),
+                end: Alignment(0.2 + pos, 1),
+                colors: [
+                  Colors.white.withValues(alpha: 0),
+                  Colors.white.withValues(alpha: 0.16),
+                  Colors.white.withValues(alpha: 0),
+                ],
+                stops: const [0.35, 0.5, 0.65],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _CardFront extends StatelessWidget {
   final CardDesign design;
   final CardProfile card;
   final double w;
   final double h;
-  const _CardFront({required this.design, required this.card, required this.w, required this.h});
+  final double sheen;
+  const _CardFront({required this.design, required this.card, required this.w, required this.h, required this.sheen});
 
   @override
   Widget build(BuildContext context) {
-    final s = w / 340; // scale text with card width
-    final name = card.str('name').isEmpty ? 'Your Name' : card.str('name');
+    final s = w / 340;
+    final name = card.str('name').isEmpty ? t('Your Name') : card.str('name');
     final title = card.str('title');
     final top = card.type == CardType.business ? card.str('company') : '';
     final logo = card.str('logo');
     return Container(
       width: w,
       height: h,
-      padding: EdgeInsets.all(20 * s),
       decoration: _cardBox(design),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              if (logo.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6 * s),
-                  child: Image.network(logo,
-                      width: 28 * s, height: 28 * s, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox()),
+          // Decorative tap waves in the corner.
+          Positioned(
+            right: -30 * s,
+            bottom: -30 * s,
+            child: CustomPaint(size: Size(150 * s, 150 * s), painter: _WavesPainter(design.fg.withValues(alpha: 0.08))),
+          ),
+          Padding(
+            padding: EdgeInsets.all(20 * s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (logo.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(7 * s),
+                        child: Image.network(logo, filterQuality: FilterQuality.high,
+                            width: 28 * s, height: 28 * s, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox()),
+                      ),
+                    if (logo.isNotEmpty) SizedBox(width: 8 * s),
+                    Expanded(
+                      child: Text(
+                        top.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: Fonts.body,
+                          color: design.fg.withValues(alpha: 0.85),
+                          fontSize: 11 * s,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.6,
+                        ),
+                      ),
+                    ),
+                    _Chip(color: design.fg, s: s),
+                  ],
                 ),
-              if (logo.isNotEmpty) SizedBox(width: 8 * s),
-              Expanded(
-                child: Text(
-                  top.isEmpty ? '' : top.toUpperCase(),
+                const Spacer(),
+                Container(width: 26 * s, height: 3 * s, decoration: BoxDecoration(color: design.line, borderRadius: BorderRadius.circular(2))),
+                SizedBox(height: 10 * s),
+                Text(
+                  name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: design.fg.withValues(alpha: 0.85),
-                    fontSize: 11 * s,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.4,
-                  ),
+                      fontFamily: Fonts.display, color: design.fg, fontSize: 21 * s, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                 ),
-              ),
-              Icon(Icons.contactless_outlined, color: design.fg.withValues(alpha: 0.8), size: 24 * s),
-            ],
-          ),
-          const Spacer(),
-          Container(width: 22 * s, height: 2 * s, color: design.line),
-          SizedBox(height: 10 * s),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: design.fg, fontSize: 21 * s, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-          ),
-          if (title.isNotEmpty) ...[
-            SizedBox(height: 3 * s),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: design.fg.withValues(alpha: 0.65), fontSize: 12.5 * s),
+                if (title.isNotEmpty) ...[
+                  SizedBox(height: 3 * s),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: Fonts.body, color: design.fg.withValues(alpha: 0.7), fontSize: 13 * s),
+                  ),
+                ],
+                SizedBox(height: 14 * s),
+                Row(
+                  children: [
+                    Text(
+                      card.type == CardType.business ? 'BUSINESS' : 'PERSONAL',
+                      style: TextStyle(
+                          fontFamily: Fonts.body,
+                          color: design.fg.withValues(alpha: 0.5),
+                          fontSize: 9.5 * s,
+                          letterSpacing: 1.8,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'nexa tap',
+                      style: TextStyle(
+                          fontFamily: Fonts.display,
+                          color: design.fg.withValues(alpha: 0.75),
+                          fontSize: 11.5 * s,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-          SizedBox(height: 14 * s),
-          Row(
-            children: [
-              Text(
-                card.type == CardType.business ? 'BUSINESS' : 'PERSONAL',
-                style: TextStyle(
-                    color: design.fg.withValues(alpha: 0.45), fontSize: 9 * s, letterSpacing: 1.6, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              Text(
-                'nexa tap',
-                style: TextStyle(
-                    color: design.fg.withValues(alpha: 0.6), fontSize: 11 * s, fontWeight: FontWeight.w700, letterSpacing: -0.2),
-              ),
-            ],
           ),
+          _Sheen(sheen),
         ],
       ),
     );
   }
+}
+
+/// Small NFC chip + waves glyph.
+class _Chip extends StatelessWidget {
+  final Color color;
+  final double s;
+  const _Chip({required this.color, required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 26 * s,
+          height: 20 * s,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4 * s),
+            gradient: const LinearGradient(colors: [Color(0xFFE9D9A6), Color(0xFFB8A066)]),
+          ),
+        ),
+        SizedBox(width: 6 * s),
+        Icon(Ic.nfc, color: color.withValues(alpha: 0.85), size: 22 * s),
+      ],
+    );
+  }
+}
+
+class _WavesPainter extends CustomPainter {
+  final Color color;
+  _WavesPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.07;
+    final c = Offset(size.width * 0.2, size.height * 0.8);
+    for (var i = 1; i <= 4; i++) {
+      canvas.drawArc(Rect.fromCircle(center: c, radius: size.width * 0.22 * i), -math.pi / 2, math.pi / 2, false, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WavesPainter old) => old.color != color;
 }
 
 class _CardBack extends StatelessWidget {
@@ -203,54 +335,66 @@ class _CardBack extends StatelessWidget {
   final String link;
   final double w;
   final double h;
-  const _CardBack({required this.design, required this.link, required this.w, required this.h});
+  final double sheen;
+  const _CardBack({required this.design, required this.link, required this.w, required this.h, required this.sheen});
 
   @override
   Widget build(BuildContext context) {
     final s = w / 340;
-    final qr = h * 0.56;
+    final qr = h * 0.58;
     return Container(
       width: w,
       height: h,
-      padding: EdgeInsets.all(18 * s),
       decoration: _cardBox(design),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: qr,
-            height: qr,
-            padding: EdgeInsets.all(6 * s),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8 * s)),
-            child: QrImageView(
-              data: link,
-              version: QrVersions.auto,
-              padding: EdgeInsets.zero,
-              backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-              dataModuleStyle:
-                  const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
-            ),
-          ),
-          SizedBox(width: 18 * s),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: EdgeInsets.all(18 * s),
+            child: Row(
               children: [
-                Icon(Icons.contactless_outlined, color: design.fg, size: 26 * s),
-                SizedBox(height: 10 * s),
-                Text('Tap or scan',
-                    style: TextStyle(color: design.fg, fontSize: 15 * s, fontWeight: FontWeight.w700)),
-                SizedBox(height: 4 * s),
-                Text('to save my contact',
-                    style: TextStyle(color: design.fg.withValues(alpha: 0.65), fontSize: 11.5 * s)),
-                SizedBox(height: 14 * s),
-                Text('nexa tap',
-                    style: TextStyle(
-                        color: design.fg.withValues(alpha: 0.55), fontSize: 11 * s, fontWeight: FontWeight.w700)),
+                Container(
+                  width: qr,
+                  height: qr,
+                  padding: EdgeInsets.all(7 * s),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10 * s)),
+                  child: QrImageView(
+                    data: link,
+                    version: QrVersions.auto,
+                    padding: EdgeInsets.zero,
+                    backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: Color(0xFF0B0D1A)),
+                    dataModuleStyle:
+                        const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Color(0xFF0B0D1A)),
+                  ),
+                ),
+                SizedBox(width: 18 * s),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Ic.nfc, color: design.fg, size: 28 * s),
+                      SizedBox(height: 10 * s),
+                      Text(t('Tap or scan'),
+                          style: TextStyle(
+                              fontFamily: Fonts.display, color: design.fg, fontSize: 16 * s, fontWeight: FontWeight.w800)),
+                      SizedBox(height: 4 * s),
+                      Text(t('to save my contact'),
+                          style: TextStyle(fontFamily: Fonts.body, color: design.fg.withValues(alpha: 0.7), fontSize: 12 * s)),
+                      SizedBox(height: 14 * s),
+                      Text('nexa tap',
+                          style: TextStyle(
+                              fontFamily: Fonts.display,
+                              color: design.fg.withValues(alpha: 0.6),
+                              fontSize: 11.5 * s,
+                              fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+          _Sheen(sheen),
         ],
       ),
     );

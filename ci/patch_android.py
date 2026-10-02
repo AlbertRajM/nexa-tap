@@ -17,3 +17,48 @@ else:
     s = s.replace('</manifest>', '    <queries>' + queries + '\n    </queries>\n</manifest>', 1)
 m.write_text(s)
 print(s)
+
+# ---- Bundle the app fonts (Syne for headings, Outfit for text) ----
+pub = pathlib.Path('build_app/pubspec.yaml')
+y = pub.read_text()
+if 'family: Syne' not in y:
+    fonts = '''  uses-material-design: true
+  fonts:
+    - family: Syne
+      fonts:
+        - asset: assets/fonts/Syne-600.ttf
+          weight: 600
+        - asset: assets/fonts/Syne-700.ttf
+          weight: 700
+        - asset: assets/fonts/Syne-800.ttf
+          weight: 800
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-300.ttf
+          weight: 300
+        - asset: assets/fonts/Outfit-400.ttf
+          weight: 400
+        - asset: assets/fonts/Outfit-500.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit-600.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-700.ttf
+          weight: 700
+'''
+    assert 'uses-material-design: true' in y, 'pubspec format changed'
+    y = y.replace('  uses-material-design: true\n', fonts, 1)
+    pub.write_text(y)
+print('fonts added to pubspec')
+
+# ---- Icon font (Lucide) and texture assets ----
+y = pub.read_text()
+if 'family: Lucide' not in y:
+    y = y.replace('  fonts:\n', '''  assets:
+    - assets/textures/
+  fonts:
+    - family: Lucide
+      fonts:
+        - asset: assets/fonts/Lucide.ttf
+''', 1)
+    pub.write_text(y)
+print('icons + textures added to pubspec')

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 class Profile {
   final String id;
@@ -41,11 +43,11 @@ class Profile {
 enum CardType { business, personal }
 
 extension CardTypeX on CardType {
-  String get label => this == CardType.business ? 'Business' : 'Personal';
-  IconData get icon => this == CardType.business ? Icons.work_outline_rounded : Icons.person_outline_rounded;
+  String get label => this == CardType.business ? t('Business') : t('Personal');
+  IconData get icon => this == CardType.business ? Ic.briefcase : Ic.user;
   String get blurb => this == CardType.business
-      ? 'Company, role, work contacts and office address'
-      : 'Personal contacts, bio and social profiles';
+      ? t('Company, role, work contacts and office address')
+      : t('Personal contacts, bio and social profiles');
   static CardType parse(String s) => s == 'personal' ? CardType.personal : CardType.business;
 }
 
@@ -90,23 +92,23 @@ class OrderStatus {
   static const steps = ['placed', 'confirmed', 'printing', 'quality_check', 'shipped', 'delivered'];
 
   static String label(String s) => switch (s) {
-        'placed' => 'Order placed',
-        'confirmed' => 'Confirmed',
-        'printing' => 'Printing & encoding',
-        'quality_check' => 'Quality check',
-        'shipped' => 'Shipped',
-        'delivered' => 'Delivered',
-        'cancelled' => 'Cancelled',
+        'placed' => t('Order placed'),
+        'confirmed' => t('Confirmed'),
+        'printing' => t('Printing & encoding'),
+        'quality_check' => t('Quality check'),
+        'shipped' => t('Shipped'),
+        'delivered' => t('Delivered'),
+        'cancelled' => t('Cancelled'),
         _ => s,
       };
 
   static String detail(String s) => switch (s) {
-        'placed' => 'We have received your order.',
-        'confirmed' => 'Our team has confirmed the details and payment.',
-        'printing' => 'Your card is being printed and the NFC chip programmed.',
-        'quality_check' => 'Every card is tap-tested before it leaves.',
-        'shipped' => 'Your card is on the way.',
-        'delivered' => 'Delivered. Tap it on any phone to share your profile.',
+        'placed' => t('We have received your order.'),
+        'confirmed' => t('Our team has confirmed the details and payment.'),
+        'printing' => t('Your card is being printed and the NFC chip programmed.'),
+        'quality_check' => t('Every card is tap-tested before it leaves.'),
+        'shipped' => t('Your card is on the way.'),
+        'delivered' => t('Delivered. Tap it on any phone to share your profile.'),
         _ => '',
       };
 
@@ -164,7 +166,7 @@ class Order {
       );
 }
 
-/// Physical card finishes. Solid colours only — they mimic real card stock.
+/// Physical card finishes.
 class CardDesign {
   final String id;
   final String name;
@@ -172,18 +174,26 @@ class CardDesign {
   final Color bg;
   final Color fg;
   final Color line;
-  const CardDesign(this.id, this.name, this.finish, this.bg, this.fg, this.line);
+  final List<Color>? gradient;
+  const CardDesign(this.id, this.name, this.finish, this.bg, this.fg, this.line, [this.gradient]);
 
   static const all = <CardDesign>[
-    CardDesign('graphite', 'Graphite', 'Matte black PVC', Color(0xFF1B1C1F), Color(0xFFF3F3F3), Color(0xFF6E737B)),
+    CardDesign('volt', 'Volt', 'Electric lime matte', Color(0xFFC8FF4D), Color(0xFF0B0D1A), Color(0xFF0B0D1A)),
+    CardDesign('ultraviolet', 'Ultraviolet', 'Violet gradient', Color(0xFF5B4BDB), Color(0xFFFFFFFF), Color(0xFFC8FF4D),
+        [Color(0xFF3A2DB8), Color(0xFF8B7CFF)]),
+    CardDesign('holo', 'Holo', 'Iridescent foil', Color(0xFFD9ECFF), Color(0xFF0B0D1A), Color(0xFF5B4BDB),
+        [Color(0xFFB8F3FF), Color(0xFFE6C8FF), Color(0xFFFFE9B0), Color(0xFFC8FFE0)]),
+    CardDesign('graphite', 'Graphite', 'Matte black', Color(0xFF16171C), Color(0xFFF3F3F3), Color(0xFFC8FF4D)),
+    CardDesign('navy', 'Midnight', 'Deep navy', Color(0xFF101A33), Color(0xFFF1F2F4), Color(0xFFB59A5A),
+        [Color(0xFF0B1226), Color(0xFF1C2B55)]),
     CardDesign('ivory', 'Ivory', 'Soft-touch white', Color(0xFFF2EEE6), Color(0xFF1A1A1A), Color(0xFFB9B2A4)),
-    CardDesign('navy', 'Navy', 'Matte navy PVC', Color(0xFF142139), Color(0xFFF1F2F4), Color(0xFFB59A5A)),
-    CardDesign('forest', 'Forest', 'Matte green PVC', Color(0xFF1E3A2E), Color(0xFFEDEDE6), Color(0xFF8DA595)),
+    CardDesign('forest', 'Forest', 'Matte green', Color(0xFF1E3A2E), Color(0xFFEDEDE6), Color(0xFF8DA595)),
     CardDesign('sand', 'Sand', 'Textured beige', Color(0xFFD9C6A8), Color(0xFF2A2118), Color(0xFF9C8667)),
-    CardDesign('steel', 'Steel', 'Brushed metal look', Color(0xFFA7ACB1), Color(0xFF15171A), Color(0xFF6C7177)),
+    CardDesign('steel', 'Steel', 'Brushed metal look', Color(0xFFA7ACB1), Color(0xFF15171A), Color(0xFF6C7177),
+        [Color(0xFF8E949A), Color(0xFFD3D7DB), Color(0xFF9DA3A9)]),
   ];
 
-  static CardDesign byId(String id) => all.firstWhere((d) => d.id == id, orElse: () => all.first);
+  static CardDesign byId(String id) => all.firstWhere((d) => d.id == id, orElse: () => all[3]);
 }
 
 String formatDate(DateTime d) {

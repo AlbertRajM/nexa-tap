@@ -8,11 +8,13 @@ import '../core/ui.dart';
 import '../data/app_state.dart';
 import '../data/models.dart';
 import '../data/repo.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 class ReferralsScreen extends StatefulWidget {
   const ReferralsScreen({super.key});
 
-  static Route<void> route() => MaterialPageRoute(builder: (_) => const ReferralsScreen());
+  static Route<void> route() => nxRoute(const ReferralsScreen());
 
   @override
   State<ReferralsScreen> createState() => _ReferralsScreenState();
@@ -28,12 +30,11 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
     final code = profile.referralCode;
     final message = 'Join me on Nexa Tap and get ${AppConfig.referralDiscountPercent}% off your first NFC card. '
         'Use my code $code when you sign up.';
-    return Scaffold(
-      backgroundColor: p.bg,
-      appBar: nxAppBar(context, 'Invite friends'),
+    return NxScaffold(
+      title: t('Invite friends'),
       body: RefreshIndicator(
-        color: p.accent,
-        backgroundColor: p.surface,
+        color: p.onAccent,
+        backgroundColor: p.accent,
         onRefresh: () async {
           final f = Repo.instance.referralStats();
           setState(() => _stats = f);
@@ -42,53 +43,60 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(Space.page, Space.s, Space.page, Space.xxl),
           children: [
-            Text('Friends get ${AppConfig.referralDiscountPercent}% off their first card when they sign up with your code.',
+            Text(tf('Friends get {x}% off their first card when they sign up with your code.', AppConfig.referralDiscountPercent),
                 style: TextStyles.muted(p)),
             const SizedBox(height: Space.xl),
             Panel(
+              glow: true,
               padding: const EdgeInsets.all(Space.xl),
               child: Column(
                 children: [
-                  Text('YOUR CODE', style: TextStyles.label(p).copyWith(letterSpacing: 1.4)),
+                  Text(t('YOUR CODE'), style: TextStyles.label(p).copyWith(letterSpacing: 1.4)),
                   const SizedBox(height: 10),
                   Pressable(
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: code));
                       HapticFeedback.lightImpact();
-                      toast(context, 'Code copied');
+                      toast(context, t('Code copied'));
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(code,
-                            style: TextStyle(
-                                fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 3, color: p.text)),
+                        ShaderMask(
+                          blendMode: BlendMode.srcIn,
+                          shaderCallback: (r) => LinearGradient(
+                            colors: p.isDark ? [p.accent, p.accent2] : [p.accent2, p.danger],
+                          ).createShader(r),
+                          child: Text(code,
+                              style: const TextStyle(
+                                  fontFamily: Fonts.display, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: 3)),
+                        ),
                         const SizedBox(width: 10),
-                        Icon(Icons.copy_rounded, size: 18, color: p.muted),
+                        Icon(Ic.copy, size: 18, color: p.muted),
                       ],
                     ),
                   ),
                   const SizedBox(height: Space.xl),
                   NxButton(
-                    'Invite on WhatsApp',
-                    icon: Icons.chat_outlined,
+                    t('Invite on WhatsApp'),
+                    icon: Ic.chat,
                     onPressed: () async {
                       try {
                         await launchUrl(Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}'),
                             mode: LaunchMode.externalApplication);
                       } catch (_) {
-                        if (context.mounted) toast(context, 'Could not open WhatsApp', error: true);
+                        if (context.mounted) toast(context, t('Could not open WhatsApp'), error: true);
                       }
                     },
                   ),
                   const SizedBox(height: 10),
                   NxButton(
-                    'Copy invite message',
-                    icon: Icons.copy_rounded,
+                    t('Copy invite message'),
+                    icon: Ic.copy,
                     kind: BtnKind.secondary,
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: message));
-                      toast(context, 'Invite message copied');
+                      toast(context, t('Invite message copied'));
                     },
                   ),
                 ],
@@ -110,7 +118,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                   ]);
                 }
                 if (snap.hasError) {
-                  return Text('Could not load referral stats. Pull down to retry.', style: TextStyles.muted(p));
+                  return Text(t('Could not load referral stats. Pull down to retry.'), style: TextStyles.muted(p));
                 }
                 final data = snap.data!;
                 final list = (data['list'] as List? ?? []).cast<Map>();
@@ -118,18 +126,18 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      _Count(value: '${data['joined'] ?? 0}', label: 'Friends joined'),
+                      _Count(value: '${data['joined'] ?? 0}', label: t('Friends joined')),
                       const SizedBox(width: 10),
-                      _Count(value: '${data['ordered'] ?? 0}', label: 'Bought a card'),
+                      _Count(value: '${data['ordered'] ?? 0}', label: t('Bought a card')),
                     ]),
                     const SizedBox(height: Space.xl),
-                    const SectionHeader('Friends'),
+                    SectionHeader(t('Friends')),
                     if (list.isEmpty)
                       Panel(
                         child: EmptyState(
-                          icon: Icons.group_outlined,
-                          title: 'No friends yet',
-                          message: 'People who sign up with your code will show up here.',
+                          icon: Ic.users,
+                          title: t('No friends yet'),
+                          message: t('People who sign up with your code will show up here.'),
                         ),
                       )
                     else
@@ -143,12 +151,12 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                                 leading: Avatar(name: '${f['name'] ?? ''}', size: 36),
                                 title: Text('${f['name'] ?? 'Friend'}', style: TextStyles.h3(p)),
                                 subtitle: Text(
-                                  'Joined ${formatDate(DateTime.tryParse('${f['joined_at']}')?.toLocal() ?? DateTime.now())}',
+                                  tf('Joined {x}', formatDate(DateTime.tryParse('${f['joined_at']}')?.toLocal() ?? DateTime.now())),
                                   style: TextStyles.muted(p).copyWith(fontSize: 12),
                                 ),
                                 trailing: f['ordered'] == true
-                                    ? Chip2('Ordered', color: p.success)
-                                    : Chip2('Signed up', color: p.muted),
+                                    ? Chip2(t('Ordered'), color: p.success)
+                                    : Chip2(t('Signed up'), color: p.muted),
                               ),
                             ],
                           ],
@@ -178,7 +186,7 @@ class _Count extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: TextStyles.number(p)),
+            CountUp(int.tryParse(value) ?? 0, style: TextStyles.number(p)),
             const SizedBox(height: 2),
             Text(label, style: TextStyles.label(p)),
           ],

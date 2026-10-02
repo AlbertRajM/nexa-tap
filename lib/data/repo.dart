@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config.dart';
 import 'models.dart';
+import '../core/i18n.dart';
 
 /// Every call to the backend lives here, so screens stay simple.
 class Repo {
@@ -47,7 +48,7 @@ class Repo {
       if (row != null) return Profile.fromMap(row);
       await Future.delayed(const Duration(milliseconds: 600));
     }
-    throw Exception('Profile not found. Please run the database setup in Supabase.');
+    throw Exception(t('Profile not found. Please run the database setup in Supabase.'));
   }
 
   Future<void> updateProfile(Map<String, dynamic> values) =>

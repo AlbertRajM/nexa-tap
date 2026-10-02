@@ -4,6 +4,9 @@ import '../core/theme.dart';
 import '../core/ui.dart';
 import '../data/repo.dart';
 import '../widgets/brand.dart';
+import '../core/i18n.dart';
+import '../widgets/lang_picker.dart';
+import '../core/icons.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -45,7 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
           referral: _referral.text,
         );
         if (Repo.instance.user == null && mounted) {
-          toast(context, 'Account created. Check your inbox to confirm your email, then sign in.');
+          toast(context, t('Account created. Check your inbox to confirm your email, then sign in.'));
           setState(() => _signUp = false);
         }
       } else {
@@ -61,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _forgot() async {
     final email = _email.text.trim();
     if (!email.contains('@')) {
-      toast(context, 'Enter your email above first.', error: true);
+      toast(context, t('Enter your email above first.'), error: true);
       return;
     }
     try {
@@ -75,10 +78,9 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return Scaffold(
-      backgroundColor: p.bg,
-      body: SafeArea(
-        child: Center(
+    return NxScaffold(
+      back: false,
+      body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: Space.xl, vertical: Space.xl),
             child: AutofillGroup(
@@ -87,20 +89,24 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Wordmark(),
-                    const SizedBox(height: 40),
+                    const Align(alignment: Alignment.centerRight, child: LanguageButton()),
+                    const SizedBox(height: 8),
+                    const Center(child: Floating(child: NexaLogo(size: 92))),
+                    const SizedBox(height: 18),
+                    const Center(child: Wordmark(size: 20, animate: false)),
+                    const SizedBox(height: 36),
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 220),
                       child: Column(
                         key: ValueKey(_signUp),
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_signUp ? 'Create your account' : 'Welcome back', style: TextStyles.title(p)),
+                          Text(_signUp ? t('Create your\naccount') : t('Welcome\nback'), style: TextStyles.display(p)),
                           const SizedBox(height: 6),
                           Text(
                             _signUp
-                                ? 'Set up your digital card in a couple of minutes.'
-                                : 'Sign in to manage your cards and orders.',
+                                ? t('Set up your digital card in a couple of minutes.')
+                                : t('Sign in to manage your cards and orders.'),
                             style: TextStyles.muted(p),
                           ),
                         ],
@@ -108,8 +114,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: Space.xl),
                     _Segment(
-                      left: 'Sign in',
-                      right: 'Create account',
+                      left: t('Sign in'),
+                      right: t('Create account'),
                       rightSelected: _signUp,
                       onChanged: (v) => setState(() => _signUp = v),
                     ),
@@ -122,10 +128,10 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? Padding(
                               padding: const EdgeInsets.only(bottom: Space.l),
                               child: NxField(
-                                label: 'Full name',
+                                label: t('Full name'),
                                 controller: _name,
                                 hint: 'Albert Raj',
-                                icon: Icons.person_outline,
+                                icon: Ic.user,
                                 capitalization: TextCapitalization.words,
                                 action: TextInputAction.next,
                                 autofill: const [AutofillHints.name],
@@ -135,28 +141,28 @@ class _AuthScreenState extends State<AuthScreen> {
                           : const SizedBox(width: double.infinity),
                     ),
                     NxField(
-                      label: 'Email',
+                      label: t('Email'),
                       controller: _email,
                       hint: 'you@example.com',
-                      icon: Icons.mail_outline,
+                      icon: Ic.mail,
                       keyboardType: TextInputType.emailAddress,
                       action: TextInputAction.next,
                       autofill: const [AutofillHints.email],
-                      validator: (v) => (v == null || !v.contains('@') || !v.contains('.')) ? 'Enter a valid email' : null,
+                      validator: (v) => (v == null || !v.contains('@') || !v.contains('.')) ? t('Enter a valid email') : null,
                     ),
                     const SizedBox(height: Space.l),
                     NxField(
-                      label: 'Password',
+                      label: t('Password'),
                       controller: _password,
-                      hint: _signUp ? 'At least 6 characters' : 'Your password',
-                      icon: Icons.lock_outline,
+                      hint: _signUp ? t('At least 6 characters') : t('Your password'),
+                      icon: Ic.lock,
                       obscure: _hide,
                       action: TextInputAction.done,
                       autofill: [_signUp ? AutofillHints.newPassword : AutofillHints.password],
-                      validator: (v) => (v == null || v.length < 6) ? 'At least 6 characters' : null,
+                      validator: (v) => (v == null || v.length < 6) ? t('At least 6 characters') : null,
                       suffix: IconButton(
                         onPressed: () => setState(() => _hide = !_hide),
-                        icon: Icon(_hide ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        icon: Icon(_hide ? Ic.eye : Ic.eyeOff,
                             size: 19, color: p.muted),
                       ),
                     ),
@@ -169,38 +175,38 @@ class _AuthScreenState extends State<AuthScreen> {
                               padding: const EdgeInsets.only(top: Space.l),
                               child: _showReferral
                                   ? NxField(
-                                      label: 'Referral code (optional)',
+                                      label: t('Referral code (optional)'),
                                       controller: _referral,
                                       hint: 'e.g. ALBE7670',
-                                      icon: Icons.card_giftcard_outlined,
+                                      icon: Ic.gift,
                                       capitalization: TextCapitalization.characters,
                                     )
                                   : GestureDetector(
                                       onTap: () => setState(() => _showReferral = true),
-                                      child: Text('Have a referral code?',
+                                      child: Text(t('Have a referral code?'),
                                           style: TextStyle(
-                                              color: p.accent, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                                              color: p.link, fontSize: 14.5, fontWeight: FontWeight.w600)),
                                     ),
                             )
                           : Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: _forgot,
-                                child: Text('Forgot password?',
+                                child: Text(t('Forgot password?'),
                                     style: TextStyle(color: p.muted, fontSize: 13.5, fontWeight: FontWeight.w500)),
                               ),
                             ),
                     ),
                     const SizedBox(height: Space.xl),
                     NxButton(
-                      _signUp ? 'Create account' : 'Sign in',
+                      _signUp ? t('Create account') : t('Sign in'),
                       onPressed: _submit,
                       loading: _busy,
                     ),
                     const SizedBox(height: Space.xl),
                     Center(
                       child: Text(
-                        'By continuing you agree to our Terms and Privacy Policy.',
+                        t('By continuing you agree to our Terms and Privacy Policy.'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: p.faint, fontSize: 12),
                       ),
@@ -211,7 +217,6 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -235,7 +240,7 @@ class _Segment extends StatelessWidget {
               child: AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: sel ? p.text : p.muted,
+                  color: sel ? p.onAccent : p.muted,
                   fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -245,9 +250,9 @@ class _Segment extends StatelessWidget {
           ),
         );
     return Container(
-      height: 44,
+      height: 50,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: p.surface2, borderRadius: BorderRadius.circular(Radii.m)),
+      decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(Radii.m), border: Border.all(color: p.border)),
       child: Stack(
         children: [
           AnimatedAlign(
@@ -259,9 +264,9 @@ class _Segment extends StatelessWidget {
               heightFactor: 1,
               child: Container(
                 decoration: BoxDecoration(
-                  color: p.surface,
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: p.border),
+                  color: p.accent,
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: [BoxShadow(color: p.accent.withValues(alpha: 0.35), blurRadius: 14)],
                 ),
               ),
             ),

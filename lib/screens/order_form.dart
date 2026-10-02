@@ -9,11 +9,13 @@ import '../data/models.dart';
 import '../data/repo.dart';
 import '../widgets/nexa_card.dart';
 import 'orders.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 class OrderForm extends StatefulWidget {
   const OrderForm({super.key});
 
-  static Route<void> route() => MaterialPageRoute(builder: (_) => const OrderForm());
+  static Route<void> route() => nxRoute(const OrderForm());
 
   @override
   State<OrderForm> createState() => _OrderFormState();
@@ -85,7 +87,7 @@ class _OrderFormState extends State<OrderForm> {
       AppState.instance.addOrder(order);
       HapticFeedback.mediumImpact();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => _OrderPlaced(order: order)));
+      Navigator.of(context).pushReplacement(nxRoute(_OrderPlaced(order: order)));
     } catch (e) {
       if (mounted) toast(context, friendlyError(e), error: true);
     } finally {
@@ -99,9 +101,8 @@ class _OrderFormState extends State<OrderForm> {
     final s = AppState.instance;
     final card = s.card(_type);
     final profile = s.profile!;
-    return Scaffold(
-      backgroundColor: p.bg,
-      appBar: nxAppBar(context, 'Order a card'),
+    return NxScaffold(
+      title: t('Order a card'),
       body: Form(
         key: _form,
         child: ListView(
@@ -113,11 +114,12 @@ class _OrderFormState extends State<OrderForm> {
                 child: NexaCard(
                   card: card.copyWith(data: {...card.data, 'name': _name.text}),
                   designOverride: _design,
+                  tiltable: false,
                   link: Repo.instance.link(profile, type: _type),
                 ),
               ),
             const SizedBox(height: Space.xl),
-            const SectionHeader('Profile on the card'),
+            SectionHeader(t('Profile on the card')),
             Row(
               children: [
                 for (final t in CardType.values) ...[
@@ -134,7 +136,7 @@ class _OrderFormState extends State<OrderForm> {
               ],
             ),
             const SizedBox(height: Space.xl),
-            const SectionHeader('Finish'),
+            SectionHeader(t('Finish')),
             SizedBox(
               height: 40,
               child: ListView.separated(
@@ -150,7 +152,7 @@ class _OrderFormState extends State<OrderForm> {
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: sel ? p.accentSoft : p.surface,
+                        color: sel ? p.accent : p.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: sel ? p.accent : p.border),
                       ),
@@ -160,7 +162,8 @@ class _OrderFormState extends State<OrderForm> {
                             width: 16,
                             height: 16,
                             decoration: BoxDecoration(
-                              color: d.bg,
+                              color: d.gradient == null ? d.bg : null,
+                              gradient: d.gradient == null ? null : LinearGradient(colors: d.gradient!),
                               shape: BoxShape.circle,
                               border: Border.all(color: p.border),
                             ),
@@ -168,7 +171,7 @@ class _OrderFormState extends State<OrderForm> {
                           const SizedBox(width: 8),
                           Text(d.name,
                               style: TextStyle(
-                                  color: sel ? p.accent : p.text, fontWeight: FontWeight.w600, fontSize: 13)),
+                                  color: sel ? p.onAccent : p.text, fontWeight: FontWeight.w600, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -178,14 +181,14 @@ class _OrderFormState extends State<OrderForm> {
             ),
             const SizedBox(height: Space.xl),
             NxField(
-              label: 'Name printed on card',
+              label: t('Name printed on card'),
               controller: _name,
               capitalization: TextCapitalization.words,
               validator: requiredValidator,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: Space.xl),
-            const SectionHeader('Quantity'),
+            SectionHeader(t('Quantity')),
             Panel(
               padding: const EdgeInsets.symmetric(horizontal: Space.l, vertical: 10),
               child: Row(
@@ -194,12 +197,12 @@ class _OrderFormState extends State<OrderForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${formatRupees(AppConfig.cardPrice)} per card', style: TextStyles.h3(p)),
-                        Text('NFC chip + QR code, programmed for you', style: TextStyles.muted(p).copyWith(fontSize: 12)),
+                        Text(tf('{x} per card', formatRupees(AppConfig.cardPrice)), style: TextStyles.h3(p)),
+                        Text(t('NFC chip + QR code, programmed for you'), style: TextStyles.muted(p).copyWith(fontSize: 12)),
                       ],
                     ),
                   ),
-                  _QtyButton(icon: Icons.remove, onTap: _qty > 1 ? () => setState(() => _qty--) : null),
+                  _QtyButton(icon: Ic.minus, onTap: _qty > 1 ? () => setState(() => _qty--) : null),
                   SizedBox(
                     width: 36,
                     child: AnimatedSwitcher(
@@ -209,25 +212,25 @@ class _OrderFormState extends State<OrderForm> {
                           key: ValueKey(_qty), textAlign: TextAlign.center, style: TextStyles.h2(p)),
                     ),
                   ),
-                  _QtyButton(icon: Icons.add, onTap: _qty < 50 ? () => setState(() => _qty++) : null),
+                  _QtyButton(icon: Ic.plus, onTap: _qty < 50 ? () => setState(() => _qty++) : null),
                 ],
               ),
             ),
             const SizedBox(height: Space.xl),
-            const SectionHeader('Delivery'),
+            SectionHeader(t('Delivery')),
             NxField(
-              label: 'Phone',
+              label: t('Phone'),
               controller: _phone,
               prefixText: '+91 ',
               keyboardType: TextInputType.phone,
               maxLength: 10,
-              validator: (v) => (v == null || v.trim().length != 10) ? 'Enter a 10-digit number' : null,
+              validator: (v) => (v == null || v.trim().length != 10) ? t('Enter a 10-digit number') : null,
             ),
             const SizedBox(height: Space.l),
             NxField(
-              label: 'Address',
+              label: t('Address'),
               controller: _address,
-              hint: 'House no., street, area',
+              hint: t('House no., street, area'),
               maxLines: 3,
               capitalization: TextCapitalization.words,
               validator: requiredValidator,
@@ -238,7 +241,7 @@ class _OrderFormState extends State<OrderForm> {
               children: [
                 Expanded(
                   child: NxField(
-                    label: 'City',
+                    label: t('City'),
                     controller: _city,
                     capitalization: TextCapitalization.words,
                     validator: requiredValidator,
@@ -247,7 +250,7 @@ class _OrderFormState extends State<OrderForm> {
                 const SizedBox(width: Space.m),
                 Expanded(
                   child: NxField(
-                    label: 'PIN code',
+                    label: t('PIN code'),
                     controller: _pin,
                     keyboardType: TextInputType.number,
                     maxLength: 6,
@@ -262,17 +265,17 @@ class _OrderFormState extends State<OrderForm> {
                 children: [
                   _row(p, '$_qty × ${formatRupees(AppConfig.cardPrice)}', formatRupees(_total)),
                   const SizedBox(height: 8),
-                  _row(p, 'Delivery', 'Free'),
+                  _row(p, t('Delivery'), t('Free')),
                   Divider(height: 24, color: p.border),
-                  _row(p, 'Total', formatRupees(_total), bold: true),
+                  _row(p, t('Total'), formatRupees(_total), bold: true),
                 ],
               ),
             ),
             const SizedBox(height: Space.m),
-            Text('Payment is collected after our team confirms your order (UPI or cash on delivery).',
+            Text(t('Payment is collected after our team confirms your order (UPI or cash on delivery).'),
                 style: TextStyles.muted(p).copyWith(fontSize: 12)),
             const SizedBox(height: Space.xl),
-            NxButton('Place order · ${formatRupees(_total)}', onPressed: _submit, loading: _busy),
+            NxButton(tf('Place order · {x}', formatRupees(_total)), onPressed: _submit, loading: _busy),
           ],
         ),
       ),
@@ -303,18 +306,18 @@ class _Option extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         height: 48,
         decoration: BoxDecoration(
-          color: selected ? p.accentSoft : p.surface,
+          color: selected ? p.accent : p.surface,
           borderRadius: BorderRadius.circular(Radii.m),
           border: Border.all(color: selected ? p.accent : p.border, width: selected ? 1.5 : 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: selected ? p.accent : p.muted),
+            Icon(icon, size: 18, color: selected ? p.onAccent : p.muted),
             const SizedBox(width: 8),
             Text(label,
                 style: TextStyle(
-                    color: selected ? p.accent : p.text, fontWeight: FontWeight.w600, fontSize: 14)),
+                    color: selected ? p.onAccent : p.text, fontWeight: FontWeight.w600, fontSize: 14)),
           ],
         ),
       ),
@@ -355,8 +358,8 @@ class _OrderPlaced extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    return Scaffold(
-      backgroundColor: p.bg,
+    return NxScaffold(
+      back: false,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(Space.xl),
@@ -369,14 +372,18 @@ class _OrderPlaced extends StatelessWidget {
                 curve: Curves.elasticOut,
                 builder: (context, v, child) => Transform.scale(scale: v, child: child),
                 child: Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(color: p.success.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: Icon(Icons.check_rounded, size: 44, color: p.success),
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    color: p.accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: 0.55), blurRadius: 40)],
+                  ),
+                  child: Icon(Ic.check, size: 52, color: p.onAccent),
                 ),
               ),
               const SizedBox(height: Space.xl),
-              Text('Order placed', style: TextStyles.title(p)),
+              Text(t('Order placed'), style: TextStyles.title(p)),
               const SizedBox(height: 8),
               Text(
                 'Order #${order.orderNo}. Our team will call you on +91 ${order.phone} to confirm the details and payment.',
@@ -384,10 +391,10 @@ class _OrderPlaced extends StatelessWidget {
                 style: TextStyles.muted(p),
               ),
               const Spacer(),
-              NxButton('Track order',
+              NxButton(t('Track order'),
                   onPressed: () => Navigator.of(context).pushReplacement(OrderDetail.route(order))),
               const SizedBox(height: 10),
-              NxButton('Done', kind: BtnKind.ghost, onPressed: () => Navigator.of(context).pop()),
+              NxButton(t('Done'), kind: BtnKind.ghost, onPressed: () => Navigator.of(context).pop()),
             ],
           ),
         ),

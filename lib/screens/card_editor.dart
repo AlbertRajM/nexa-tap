@@ -8,13 +8,15 @@ import '../data/app_state.dart';
 import '../data/models.dart';
 import '../data/repo.dart';
 import '../widgets/nexa_card.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 /// Step-by-step editor for a personal or business profile, with a live card preview.
 class CardEditor extends StatefulWidget {
   final CardProfile card;
   const CardEditor({super.key, required this.card});
 
-  static Route<void> route(CardProfile card) => MaterialPageRoute(builder: (_) => CardEditor(card: card));
+  static Route<void> route(CardProfile card) => nxRoute(CardEditor(card: card));
 
   @override
   State<CardEditor> createState() => _CardEditorState();
@@ -83,7 +85,7 @@ class _CardEditorState extends State<CardEditor> {
   Future<void> _save() async {
     if (_c['name']!.text.trim().isEmpty) {
       _go(0);
-      toast(context, 'Please add your name.', error: true);
+      toast(context, t('Please add your name.'), error: true);
       return;
     }
     FocusScope.of(context).unfocus();
@@ -93,7 +95,7 @@ class _CardEditorState extends State<CardEditor> {
       _dirty = false;
       HapticFeedback.mediumImpact();
       if (!mounted) return;
-      toast(context, '${widget.card.type.label} profile saved');
+      toast(context, tf('{x} profile', widget.card.type.label));
       Navigator.of(context).pop();
     } catch (e) {
       if (mounted) toast(context, friendlyError(e), error: true);
@@ -106,9 +108,9 @@ class _CardEditorState extends State<CardEditor> {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        maxWidth: 900,
-        maxHeight: 900,
-        imageQuality: 82,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 92,
       );
       if (file == null) return;
       setState(() => _uploading = kind);
@@ -131,18 +133,14 @@ class _CardEditorState extends State<CardEditor> {
 
   Future<bool> _confirmLeave() async {
     final p = Palette.of(context);
-    final res = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: p.surface,
-        surfaceTintColor: Colors.transparent,
-        title: Text('Discard changes?', style: TextStyles.h2(p)),
-        content: Text('Your edits have not been saved.', style: TextStyles.muted(p)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Keep editing', style: TextStyle(color: p.text))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Discard', style: TextStyle(color: p.danger))),
-        ],
-      ),
+    final res = await nxDialog<bool>(
+      context,
+      title: t('Discard changes?'),
+      content: Text(t('Your edits have not been saved.'), style: TextStyles.muted(p)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('Keep editing'), style: TextStyle(color: p.text))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(t('Discard'), style: TextStyle(color: p.danger))),
+      ],
     );
     return res ?? false;
   }
@@ -162,17 +160,14 @@ class _CardEditorState extends State<CardEditor> {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
-        backgroundColor: p.bg,
-        appBar: nxAppBar(context, '${widget.card.type.label} profile', actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton(
-              onPressed: _saving ? null : _save,
-              child: Text('Save', style: TextStyle(color: p.accent, fontWeight: FontWeight.w700, fontSize: 15)),
-            ),
+      child: NxScaffold(
+        title: tf('{x} profile', widget.card.type.label),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _save,
+            child: Text(t('Save'), style: TextStyle(color: p.link, fontWeight: FontWeight.w700, fontSize: 16)),
           ),
-        ]),
+        ],
         body: Column(
           children: [
             AnimatedSize(
@@ -205,19 +200,19 @@ class _CardEditorState extends State<CardEditor> {
               top: false,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(Space.page, Space.m, Space.page, Space.m),
-                decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.border))),
+                decoration: BoxDecoration(color: p.surface, border: Border(top: BorderSide(color: p.border))),
                 child: Row(
                   children: [
                     if (_step > 0)
                       Expanded(
-                        child: NxButton('Back', kind: BtnKind.secondary, onPressed: () => _go(_step - 1)),
+                        child: NxButton(t('Back'), kind: BtnKind.secondary, onPressed: () => _go(_step - 1)),
                       ),
                     if (_step > 0) const SizedBox(width: 10),
                     Expanded(
                       flex: 2,
                       child: _step < _steps.length - 1
-                          ? NxButton('Next', onPressed: () => _go(_step + 1))
-                          : NxButton('Save profile', onPressed: _save, loading: _saving),
+                          ? NxButton(t('Next'), onPressed: () => _go(_step + 1))
+                          : NxButton(t('Save profile'), onPressed: _save, loading: _saving),
                     ),
                   ],
                 ),
@@ -240,7 +235,7 @@ class _CardEditorState extends State<CardEditor> {
         Row(
           children: [
             _ImagePickTile(
-              label: 'Photo',
+              label: t('Photo'),
               url: _avatar,
               busy: _uploading == 'avatar',
               round: true,
@@ -249,7 +244,7 @@ class _CardEditorState extends State<CardEditor> {
             if (_business) ...[
               const SizedBox(width: Space.l),
               _ImagePickTile(
-                label: 'Company logo',
+                label: t('Company logo'),
                 url: _logo,
                 busy: _uploading == 'logo',
                 round: false,
@@ -260,7 +255,7 @@ class _CardEditorState extends State<CardEditor> {
         ),
         const SizedBox(height: Space.xl),
         NxField(
-          label: 'Full name',
+          label: t('Full name'),
           controller: _c['name']!,
           hint: 'Albert Raj',
           capitalization: TextCapitalization.words,
@@ -268,27 +263,27 @@ class _CardEditorState extends State<CardEditor> {
         ),
         _gap(),
         NxField(
-          label: _business ? 'Job title' : 'What you do',
+          label: _business ? t('Job title') : t('What you do'),
           controller: _c['title']!,
-          hint: _business ? 'Sales Manager' : 'Photographer, student, designer…',
+          hint: _business ? 'Sales Manager' : t('Photographer, student, designer…'),
           capitalization: TextCapitalization.sentences,
           action: TextInputAction.next,
         ),
         if (_business) ...[
           _gap(),
           NxField(
-            label: 'Company',
+            label: t('Company'),
             controller: _c['company']!,
-            hint: 'Company name',
+            hint: t('Company name'),
             capitalization: TextCapitalization.words,
             action: TextInputAction.next,
           ),
         ],
         _gap(),
         NxField(
-          label: _business ? 'About the company' : 'Short bio',
+          label: _business ? t('About the company') : t('Short bio'),
           controller: _c['bio']!,
-          hint: _business ? 'What your company does, in a line or two' : 'A line or two about you',
+          hint: _business ? t('What your company does, in a line or two') : t('A line or two about you'),
           maxLines: 4,
           maxLength: 240,
           capitalization: TextCapitalization.sentences,
@@ -297,11 +292,11 @@ class _CardEditorState extends State<CardEditor> {
 
   Widget _contact() => _scroll([
         NxField(
-          label: _business ? 'Work phone' : 'Phone',
+          label: _business ? t('Work phone') : t('Phone'),
           controller: _c['phone']!,
           hint: '98765 43210',
           prefixText: '+91 ',
-          icon: Icons.call_outlined,
+          icon: Ic.phone,
           keyboardType: TextInputType.phone,
           action: TextInputAction.next,
         ),
@@ -309,68 +304,68 @@ class _CardEditorState extends State<CardEditor> {
         NxField(
           label: 'WhatsApp',
           controller: _c['whatsapp']!,
-          hint: 'Leave empty to use the phone number',
+          hint: t('Leave empty to use the phone number'),
           prefixText: '+91 ',
-          icon: Icons.chat_outlined,
+          icon: Ic.chat,
           keyboardType: TextInputType.phone,
           action: TextInputAction.next,
         ),
         _gap(),
         NxField(
-          label: _business ? 'Work email' : 'Email',
+          label: _business ? t('Work email') : t('Email'),
           controller: _c['email']!,
           hint: 'you@example.com',
-          icon: Icons.mail_outline,
+          icon: Ic.mail,
           keyboardType: TextInputType.emailAddress,
           action: TextInputAction.next,
         ),
         _gap(),
         NxField(
-          label: 'Website',
+          label: t('Website'),
           controller: _c['website']!,
           hint: 'www.example.com',
-          icon: Icons.language_outlined,
+          icon: Ic.globe,
           keyboardType: TextInputType.url,
           action: TextInputAction.next,
         ),
         _gap(),
         if (_business) ...[
           NxField(
-            label: 'Office address',
+            label: t('Office address'),
             controller: _c['address']!,
-            hint: 'Building, street, city',
-            icon: Icons.location_on_outlined,
+            hint: t('Building, street, city'),
+            icon: Ic.pin,
             maxLines: 3,
             capitalization: TextCapitalization.words,
           ),
           _gap(),
           NxField(
-            label: 'Google Maps link',
+            label: t('Google Maps link'),
             controller: _c['maps']!,
             hint: 'https://maps.app.goo.gl/…',
-            icon: Icons.map_outlined,
+            icon: Ic.map,
             keyboardType: TextInputType.url,
           ),
         ] else
           NxField(
-            label: 'City',
+            label: t('City'),
             controller: _c['location']!,
             hint: 'Bengaluru',
-            icon: Icons.location_on_outlined,
+            icon: Ic.pin,
             capitalization: TextCapitalization.words,
           ),
       ]);
 
   Widget _social() {
     final items = <(String, String, IconData)>[
-      ('linkedin', 'LinkedIn', Icons.work_outline),
-      ('instagram', 'Instagram', Icons.camera_alt_outlined),
-      ('x', 'X (Twitter)', Icons.alternate_email),
-      if (!_business) ('facebook', 'Facebook', Icons.people_outline),
-      ('youtube', 'YouTube', Icons.play_circle_outline),
+      ('linkedin', 'LinkedIn', Ic.linkedin),
+      ('instagram', 'Instagram', Ic.instagram),
+      ('x', 'X (Twitter)', Ic.atSign),
+      if (!_business) ('facebook', 'Facebook', Ic.facebook),
+      ('youtube', 'YouTube', Ic.youtube),
     ];
     return _scroll([
-      Text('Add a username or a full link. Leave empty to hide.', style: TextStyles.muted(Palette.of(context))),
+      Text(t('Add a username or a full link. Leave empty to hide.'), style: TextStyles.muted(Palette.of(context))),
       const SizedBox(height: Space.l),
       for (final (key, label, icon) in items) ...[
         NxField(
@@ -387,7 +382,7 @@ class _CardEditorState extends State<CardEditor> {
   }
 
   Widget _designStep(Palette p) => _scroll([
-        Text('Pick a finish for your card. The same design is used for the physical card when you order.',
+        Text(t('Pick a finish for your card. The same design is used for the physical card when you order.'),
             style: TextStyles.muted(p)),
         const SizedBox(height: Space.l),
         GridView.count(
@@ -447,12 +442,12 @@ class _StepBar extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           child: i < current
-                              ? Icon(Icons.check, size: 12, color: p.onAccent)
+                              ? Icon(Ic.check, size: 12, color: p.onAccent)
                               : Text('${i + 1}',
                                   style: TextStyle(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
-                                      color: i == current ? p.accent : p.muted)),
+                                      color: i == current ? p.link : p.muted)),
                         ),
                         const SizedBox(width: 6),
                         Text(steps[i],
@@ -500,14 +495,14 @@ class _ImagePickTile extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(color: p.surface, borderRadius: radius, border: Border.all(color: p.border)),
             child: busy
-                ? Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: p.accent)))
+                ? Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: p.link)))
                 : url.isEmpty
-                    ? Icon(Icons.add_a_photo_outlined, color: p.muted)
-                    : Image.network(url, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(Icons.broken_image_outlined, color: p.muted)),
+                    ? Icon(Ic.imagePlus, color: p.muted)
+                    : Image.network(url, fit: BoxFit.cover, filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) => Icon(Ic.image, color: p.muted)),
           ),
           const SizedBox(height: 8),
-          Text(url.isEmpty ? label : 'Change', style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w500)),
+          Text(url.isEmpty ? label : t('Change'), style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -531,7 +526,8 @@ class _DesignTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: p.surface,
           borderRadius: BorderRadius.circular(Radii.l),
-          border: Border.all(color: selected ? p.accent : p.border, width: selected ? 2 : 1),
+          border: Border.all(color: selected ? p.link : p.border, width: selected ? 2 : 1),
+          boxShadow: selected ? [BoxShadow(color: p.link.withValues(alpha: 0.3), blurRadius: 16)] : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,8 +536,11 @@ class _DesignTile extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: design.bg,
-                  borderRadius: BorderRadius.circular(8),
+                  color: design.gradient == null ? design.bg : null,
+                  gradient: design.gradient == null
+                      ? null
+                      : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: design.gradient!),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: p.border),
                 ),
                 child: Stack(
@@ -550,7 +549,7 @@ class _DesignTile extends StatelessWidget {
                     Positioned(
                       right: 8,
                       top: 8,
-                      child: Icon(Icons.contactless_outlined, size: 14, color: design.fg.withValues(alpha: 0.7)),
+                      child: Icon(Ic.nfc, size: 14, color: design.fg.withValues(alpha: 0.7)),
                     ),
                   ],
                 ),
@@ -564,7 +563,7 @@ class _DesignTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(design.name, style: TextStyles.h3(p).copyWith(fontSize: 13.5)),
-                      Text(design.finish,
+                      Text(t(design.finish),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: p.muted, fontSize: 11.5)),
@@ -575,7 +574,7 @@ class _DesignTile extends StatelessWidget {
                   scale: selected ? 1 : 0,
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutBack,
-                  child: Icon(Icons.check_circle, color: p.accent, size: 18),
+                  child: Icon(Ic.checkCircle, color: p.link, size: 20),
                 ),
               ],
             ),

@@ -5,6 +5,8 @@ import '../core/ui.dart';
 import '../data/app_state.dart';
 import '../data/models.dart';
 import 'order_form.dart';
+import '../core/i18n.dart';
+import '../core/icons.dart';
 
 class StatusChip extends StatelessWidget {
   final String status;
@@ -16,9 +18,9 @@ class StatusChip extends StatelessWidget {
     final color = switch (status) {
       'delivered' => p.success,
       'cancelled' => p.danger,
-      'shipped' => p.accent,
+      'shipped' => p.accent2,
       'placed' => p.warning,
-      _ => p.accent,
+      _ => p.isDark ? p.accent : p.accent2,
     };
     return Chip2(OrderStatus.label(status), color: color);
   }
@@ -33,14 +35,12 @@ class OrdersScreen extends StatelessWidget {
     final s = AppState.instance;
     return ListenableBuilder(
       listenable: s,
-      builder: (context, _) => SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: p.accent,
-          backgroundColor: p.surface,
+      builder: (context, _) => RefreshIndicator(
+          color: p.onAccent,
+          backgroundColor: p.accent,
           onRefresh: s.refreshOrders,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(Space.page, Space.l, Space.page, Space.xxl),
+            padding: const EdgeInsets.fromLTRB(Space.page, Space.s, Space.page, 48),
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,15 +49,13 @@ class OrdersScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Orders', style: TextStyles.title(p)),
-                        const SizedBox(height: 4),
-                        Text('Track your physical cards from print to doorstep.', style: TextStyles.muted(p)),
+                        Text(t('Track your physical cards from print to doorstep.'), style: TextStyles.muted(p)),
                       ],
                     ),
                   ),
                   if (s.orders.isNotEmpty)
-                    NxButton('New',
-                        icon: Icons.add,
+                    NxButton(t('New'),
+                        icon: Ic.plus,
                         expand: false,
                         height: 38,
                         onPressed: () => Navigator.of(context).push(OrderForm.route())),
@@ -67,22 +65,21 @@ class OrdersScreen extends StatelessWidget {
               if (s.orders.isEmpty)
                 Panel(
                   child: EmptyState(
-                    icon: Icons.local_shipping_outlined,
-                    title: 'No orders yet',
-                    message: 'Order a physical NFC card and follow its progress here.',
-                    actionLabel: 'Order a card',
+                    icon: Ic.truck,
+                    title: t('No orders yet'),
+                    message: t('Order a physical NFC card and follow its progress here.'),
+                    actionLabel: t('Order a card'),
                     onAction: () => Navigator.of(context).push(OrderForm.route()),
                   ),
                 )
               else
                 for (final (i, o) in s.orders.indexed) ...[
-                  FadeIn(delayMs: i * 50, child: _OrderTile(order: o)),
+                  FadeIn(delayMs: i * 70, child: _OrderTile(order: o)),
                   const SizedBox(height: Space.m),
                 ],
             ],
           ),
         ),
-      ),
     );
   }
 }
@@ -103,8 +100,9 @@ class _OrderTile extends StatelessWidget {
             width: 52,
             height: 34,
             decoration: BoxDecoration(
-              color: design.bg,
-              borderRadius: BorderRadius.circular(5),
+              color: design.gradient == null ? design.bg : null,
+              gradient: design.gradient == null ? null : LinearGradient(colors: design.gradient!),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: p.border),
             ),
           ),
@@ -133,7 +131,7 @@ class OrderDetail extends StatelessWidget {
   final Order order;
   const OrderDetail({super.key, required this.order});
 
-  static Route<void> route(Order o) => MaterialPageRoute(builder: (_) => OrderDetail(order: o));
+  static Route<void> route(Order o) => nxRoute(OrderDetail(order: o));
 
   @override
   Widget build(BuildContext context) {
@@ -141,9 +139,8 @@ class OrderDetail extends StatelessWidget {
     final design = CardDesign.byId(order.design);
     final current = OrderStatus.index(order.status);
     final cancelled = order.status == 'cancelled';
-    return Scaffold(
-      backgroundColor: p.bg,
-      appBar: nxAppBar(context, 'Order #${order.orderNo}'),
+    return NxScaffold(
+      title: 'Order #${order.orderNo}',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(Space.page, Space.s, Space.page, Space.xxl),
         children: [
@@ -154,7 +151,7 @@ class OrderDetail extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Placed on ${formatDate(order.createdAt)}', style: TextStyles.muted(p)),
+                      Text(tf('Placed on {x}', formatDate(order.createdAt)), style: TextStyles.muted(p)),
                       const SizedBox(height: 4),
                       Text(OrderStatus.label(order.status), style: TextStyles.h2(p)),
                     ],
@@ -165,13 +162,13 @@ class OrderDetail extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Space.xl),
-          const SectionHeader('Progress'),
+          SectionHeader(t('Progress')),
           Panel(
             padding: const EdgeInsets.fromLTRB(Space.l, Space.l, Space.l, Space.s),
             child: cancelled
                 ? Padding(
                     padding: const EdgeInsets.only(bottom: Space.s),
-                    child: Text('This order was cancelled. Contact support if this is unexpected.',
+                    child: Text(t('This order was cancelled. Contact support if this is unexpected.'),
                         style: TextStyles.muted(p)),
                   )
                 : Column(
@@ -189,16 +186,16 @@ class OrderDetail extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: Space.xl),
-          const SectionHeader('Details'),
+          SectionHeader(t('Details')),
           Panel(
             child: Column(
               children: [
-                _kv(p, 'Card', '${order.cardType == 'personal' ? 'Personal' : 'Business'} · ${design.name}'),
-                _kv(p, 'Name on card', order.nameOnCard),
-                _kv(p, 'Quantity', '${order.quantity}'),
-                _kv(p, 'Amount', formatRupees(order.amount)),
-                _kv(p, 'Phone', '+91 ${order.phone}'),
-                _kv(p, 'Deliver to', '${order.address}, ${order.city} ${order.pincode}', last: true),
+                _kv(p, t('Card'), '${order.cardType == 'personal' ? t('Personal') : t('Business')} · ${design.name}'),
+                _kv(p, t('Name on card'), order.nameOnCard),
+                _kv(p, t('Quantity'), '${order.quantity}'),
+                _kv(p, t('Amount'), formatRupees(order.amount)),
+                _kv(p, t('Phone'), '+91 ${order.phone}'),
+                _kv(p, t('Deliver to'), '${order.address}, ${order.city} ${order.pincode}', last: true),
               ],
             ),
           ),
@@ -307,9 +304,10 @@ class _Dot extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: done ? Color.lerp(p.surface2, p.accent, t) : p.surface2,
+            boxShadow: active ? [BoxShadow(color: p.accent.withValues(alpha: 0.5 * t), blurRadius: 14)] : null,
             border: active ? Border.all(color: p.accentSoft, width: 4 * t) : null,
           ),
-          child: done && !active ? Icon(Icons.check, size: 12 * t, color: p.onAccent) : null,
+          child: done && !active ? Icon(Ic.check, size: 12 * t, color: p.onAccent) : null,
         );
       },
     );

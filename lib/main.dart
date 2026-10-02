@@ -7,22 +7,30 @@ import 'core/theme.dart';
 import 'data/app_state.dart';
 import 'screens/auth.dart';
 import 'screens/shell.dart';
+import 'screens/welcome.dart';
 import 'widgets/brand.dart';
+import 'core/i18n.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await ThemeController.instance.load();
+  await BackdropController.instance.load();
+  await LangController.instance.load();
+  final welcomeSeen = await WelcomeFlag.seen();
   await Supabase.initialize(url: AppConfig.supabaseUrl, anonKey: AppConfig.supabaseKey);
-  runApp(const NexaApp());
+  runApp(NexaApp(welcomeSeen: welcomeSeen));
 }
 
 class NexaApp extends StatelessWidget {
-  const NexaApp({super.key});
+  final bool welcomeSeen;
+  const NexaApp({super.key, required this.welcomeSeen});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
+    return ValueListenableBuilder<String>(
+      valueListenable: LangController.instance,
+      builder: (context, lang, _) => ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeController.instance,
       builder: (context, mode, _) => MaterialApp(
         title: AppConfig.appName,
@@ -40,7 +48,8 @@ class NexaApp extends StatelessWidget {
           ));
           return child!;
         },
-        home: const AuthGate(),
+        home: AuthGate(welcomeSeen: welcomeSeen),
+      ),
       ),
     );
   }
@@ -48,7 +57,8 @@ class NexaApp extends StatelessWidget {
 
 /// Shows the sign-in screen or the app depending on the session.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  final bool welcomeSeen;
+  const AuthGate({super.key, required this.welcomeSeen});
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -57,11 +67,12 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   String? _loadedFor;
   bool _splashDone = false;
+  late bool _welcomeSeen = widget.welcomeSeen;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 900), () {
+    Future.delayed(const Duration(milliseconds: 1700), () {
       if (mounted) setState(() => _splashDone = true);
     });
   }
@@ -76,6 +87,8 @@ class _AuthGateState extends State<AuthGate> {
         Widget page;
         if (!_splashDone) {
           page = const SplashView(key: ValueKey('splash'));
+        } else if (!_welcomeSeen) {
+          page = WelcomeScreen(key: const ValueKey('welcome'), onDone: () => setState(() => _welcomeSeen = true));
         } else if (session == null) {
           if (_loadedFor != null) {
             _loadedFor = null;
@@ -93,8 +106,13 @@ class _AuthGateState extends State<AuthGate> {
           page = const Shell(key: ValueKey('shell'));
         }
         return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 350),
-          switchInCurve: Curves.easeOut,
+          duration: const Duration(milliseconds: 600),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, a) => FadeTransition(
+            opacity: a,
+            child: ScaleTransition(scale: Tween(begin: 1.06, end: 1.0).animate(a), child: child),
+          ),
           child: page,
         );
       },
