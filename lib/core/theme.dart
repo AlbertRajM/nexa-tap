@@ -128,7 +128,7 @@ ThemeData buildTheme(Palette p) {
       outline: p.border,
       outlineVariant: p.border,
     ),
-    textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+  textTheme: base.textTheme.apply(
       bodyColor: p.text,
       displayColor: p.text,
     ),
