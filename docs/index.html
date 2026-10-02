@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexa Tap</title>
+<meta name="description" content="Digital business card powered by Nexa Tap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6F8; --surface:#FFFFFF; --surface2:#EFF1F4; --border:#E2E5EA;
+    --text:#111317; --muted:#5E6570; --faint:#8D939C; --accent:#2563EB; --accentSoft:#E6EEFD;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0D0E10; --surface:#16181B; --surface2:#1E2024; --border:#2A2D33;
+      --text:#F2F3F5; --muted:#9BA1AA; --faint:#6B717A; --accent:#3B82F6; --accentSoft:#16233A;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;
+       -webkit-font-smoothing:antialiased;min-height:100vh}
+  .wrap{max-width:440px;margin:0 auto;padding:20px 16px 40px}
+  .top{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:-.4px;font-size:15px;margin-bottom:20px}
+  .top span{color:var(--muted);font-weight:500}
+  .logo{width:24px;height:24px;border-radius:7px;background:var(--accent);display:grid;place-items:center}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .band{height:84px;background:var(--band,#1B1C1F);position:relative}
+  .band i{position:absolute;left:20px;bottom:16px;width:22px;height:2px;background:var(--line,#6E737B)}
+  .head{padding:0 20px 20px;margin-top:-36px;position:relative}
+  .avatar{width:76px;height:76px;border-radius:50%;border:4px solid var(--surface);background:var(--accentSoft);
+          color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:26px;overflow:hidden}
+  .avatar img{width:100%;height:100%;object-fit:cover}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-top:12px}
+  .role{color:var(--muted);font-size:14px;margin-top:2px}
+  .bio{font-size:14px;line-height:1.5;margin-top:12px}
+  .save{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;margin-top:18px;
+        background:var(--accent);color:#fff;border:0;border-radius:12px;font:600 15px Inter,sans-serif;cursor:pointer}
+  .save:active{transform:scale(.98)}
+  .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .quick a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0;border:1px solid var(--border);
+           border-radius:12px;color:var(--text);text-decoration:none;font-size:12px;font-weight:500}
+  .list{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+  .row{display:flex;align-items:center;gap:14px;padding:14px 16px;text-decoration:none;color:var(--text)}
+  .row + .row{border-top:1px solid var(--border)}
+  .row .ic{width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;flex:none}
+  .row .k{font-size:12px;color:var(--muted)}
+  .row .v{font-size:14px;font-weight:500;word-break:break-word}
+  .foot{text-align:center;color:var(--faint);font-size:12px;margin-top:24px}
+  .foot a{color:var(--muted);font-weight:600;text-decoration:none}
+  .state{text-align:center;padding:80px 20px;color:var(--muted)}
+  .state h2{color:var(--text);font-size:18px;margin-bottom:6px}
+  .sk{background:var(--surface2);border-radius:10px;animation:p 1s ease-in-out infinite alternate}
+  @keyframes p{from{opacity:.45}to{opacity:1}}
+  svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="logo"><svg viewBox="0 0 24 24" style="stroke:#fff;width:14px;height:14px"><path d="M8.5 8.5a5 5 0 0 1 0 7M12 6a8.5 8.5 0 0 1 0 12M15.5 3.5a12 12 0 0 1 0 17"/></svg></div>nexa<span>tap</span></div>
+  <div id="app">
+    <div class="card" style="padding:20px">
+      <div class="sk" style="width:76px;height:76px;border-radius:50%"></div>
+      <div class="sk" style="width:60%;height:22px;margin-top:16px"></div>
+      <div class="sk" style="width:40%;height:14px;margin-top:10px"></div>
+      <div class="sk" style="width:100%;height:50px;margin-top:22px"></div>
+    </div>
+  </div>
+  <div class="foot">Get your own card with <a href="https://github.com/AlbertRajM/nexa-tap/releases/latest">Nexa Tap</a></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://apohamvfvyajrphlvgzo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_V96aBetmLfRP6jweI8rtPQ_JYNsiOqI';
+const DESIGNS = {
+  graphite:['#1B1C1F','#6E737B'], ivory:['#F2EEE6','#B9B2A4'], navy:['#142139','#B59A5A'],
+  forest:['#1E3A2E','#8DA595'], sand:['#D9C6A8','#9C8667'], steel:['#A7ACB1','#6C7177']
+};
+const I = {
+  call:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+  chat:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  web:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+  save:'<path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 21h14"/>'
+};
+const svg = k => `<svg viewBox="0 0 24 24">${I[k]}</svg>`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const url = s => /^https?:\/\//i.test(s) ? s : 'https://' + s;
+const social = (k, v) => /^https?:\/\//i.test(v) ? v : ({
+  instagram:'https://instagram.com/', linkedin:'https://linkedin.com/in/', x:'https://x.com/',
+  facebook:'https://facebook.com/', youtube:'https://youtube.com/@'
+}[k] || 'https://') + v.replace(/^@/, '');
+const digits = s => String(s || '').replace(/\D/g, '').slice(-10);
+
+function vcard(d){
+  const lines = ['BEGIN:VCARD','VERSION:3.0',`FN:${d.name||''}`,`N:${(d.name||'').split(' ').slice(1).join(' ')};${(d.name||'').split(' ')[0]||''};;;`];
+  if (d.company) lines.push(`ORG:${d.company}`);
+  if (d.title) lines.push(`TITLE:${d.title}`);
+  if (d.phone) lines.push(`TEL;TYPE=CELL:+91${digits(d.phone)}`);
+  if (d.email) lines.push(`EMAIL:${d.email}`);
+  if (d.website) lines.push(`URL:${url(d.website)}`);
+  if (d.address) lines.push(`ADR;TYPE=WORK:;;${d.address.replace(/\n/g,' ')};;;;`);
+  lines.push('END:VCARD');
+  const blob = new Blob([lines.join('\r\n')], {type:'text/vcard'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (d.name || 'contact').replace(/\s+/g,'_') + '.vcf';
+  a.click();
+}
+
+function render(p){
+  const d = p.data || {};
+  const [band, line] = DESIGNS[p.design] || DESIGNS.graphite;
+  const initials = (d.name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const role = [d.title, p.type === 'business' ? d.company : ''].filter(Boolean).join(' · ');
+  const wa = digits(d.whatsapp || d.phone);
+  const quick = [
+    d.phone && `<a href="tel:+91${digits(d.phone)}">${svg('call')}Call</a>`,
+    wa && `<a href="https://wa.me/91${wa}">${svg('chat')}WhatsApp</a>`,
+    d.email && `<a href="mailto:${esc(d.email)}">${svg('mail')}Email</a>`,
+  ].filter(Boolean);
+  const rows = [];
+  if (d.phone) rows.push(['call','Phone','+91 '+d.phone,'tel:+91'+digits(d.phone)]);
+  if (d.email) rows.push(['mail','Email',d.email,'mailto:'+d.email]);
+  if (d.website) rows.push(['web','Website',d.website,url(d.website)]);
+  if (d.address) rows.push(['pin','Office',d.address,d.maps ? url(d.maps) : 'https://maps.google.com/?q='+encodeURIComponent(d.address)]);
+  if (d.location) rows.push(['pin','Based in',d.location,'https://maps.google.com/?q='+encodeURIComponent(d.location)]);
+  const names = {linkedin:'LinkedIn',instagram:'Instagram',x:'X',facebook:'Facebook',youtube:'YouTube'};
+  for (const k of Object.keys(names)) if (d[k]) rows.push(['link',names[k],d[k],social(k,d[k])]);
+
+  document.title = (d.name || 'Profile') + ' · Nexa Tap';
+  document.getElementById('app').innerHTML = `
+    <div class="card">
+      <div class="band" style="--band:${band};--line:${line}"><i></i></div>
+      <div class="head">
+        <div class="avatar">${d.avatar ? `<img src="${esc(d.avatar)}" alt="">` : esc(initials)}</div>
+        <h1>${esc(d.name || 'Nexa Tap user')}</h1>
+        ${role ? `<div class="role">${esc(role)}</div>` : ''}
+        ${d.bio ? `<div class="bio">${esc(d.bio)}</div>` : ''}
+        <button class="save" id="save">${svg('save')}Save contact</button>
+        ${quick.length ? `<div class="quick" style="grid-template-columns:repeat(${quick.length},1fr)">${quick.join('')}</div>` : ''}
+      </div>
+    </div>
+    ${rows.length ? `<div class="list">${rows.map(r => `
+      <a class="row" href="${esc(r[3])}" target="_blank" rel="noopener">
+        <div class="ic">${svg(r[0])}</div>
+        <div><div class="k">${r[1]}</div><div class="v">${esc(r[2])}</div></div>
+      </a>`).join('')}</div>` : ''}`;
+  document.getElementById('save').onclick = () => vcard(d);
+}
+
+function empty(title, msg){
+  document.getElementById('app').innerHTML = `<div class="state"><h2>${title}</h2><p>${msg}</p></div>`;
+}
+
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const u = q.get('u');
+  if (!u) return empty('Nexa Tap', 'Tap a Nexa Tap card or scan its QR code to view a profile.');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_profile`, {
+      method: 'POST',
+      headers: {'apikey': SUPABASE_KEY, 'Content-Type': 'application/json'},
+      body: JSON.stringify({uname: u, card_type: q.get('c')})
+    });
+    const data = await res.json();
+    if (!res.ok || !data) return empty('Profile unavailable', 'This profile is paused or does not exist.');
+    render(data);
+  } catch (e) {
+    empty('Could not load profile', 'Check your connection and try again.');
+  }
+})();
+</script>
+</body>
+</html>
