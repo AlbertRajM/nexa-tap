@@ -26,7 +26,7 @@ class Ic {
   static const IconData external = IconData(57529, fontFamily: _f);
   static const IconData eye = IconData(57530, fontFamily: _f);
   static const IconData eyeOff = IconData(57531, fontFamily: _f);
-  static const IconData facebook = IconData(57532, fontFamily: _f);
+  static const IconData facebook = IconData(57764, fontFamily: _f);
   static const IconData gift = IconData(57569, fontFamily: _f);
   static const IconData globe = IconData(57576, fontFamily: _f);
   static const IconData help = IconData(57474, fontFamily: _f);
@@ -34,10 +34,10 @@ class Ic {
   static const IconData image = IconData(57590, fontFamily: _f);
   static const IconData imagePlus = IconData(57847, fontFamily: _f);
   static const IconData info = IconData(57593, fontFamily: _f);
-  static const IconData instagram = IconData(57594, fontFamily: _f);
+  static const IconData instagram = IconData(57444, fontFamily: _f);
   static const IconData languages = IconData(57598, fontFamily: _f);
   static const IconData link = IconData(57602, fontFamily: _f);
-  static const IconData linkedin = IconData(57605, fontFamily: _f);
+  static const IconData linkedin = IconData(57442, fontFamily: _f);
   static const IconData lock = IconData(57611, fontFamily: _f);
   static const IconData logout = IconData(57614, fontFamily: _f);
   static const IconData mail = IconData(57615, fontFamily: _f);
@@ -67,5 +67,5 @@ class Ic {
   static const IconData userPlus = IconData(57762, fontFamily: _f);
   static const IconData users = IconData(57764, fontFamily: _f);
   static const IconData wallpaper = IconData(58443, fontFamily: _f);
-  static const IconData youtube = IconData(57779, fontFamily: _f);
+  static const IconData youtube = IconData(57472, fontFamily: _f);
 }
