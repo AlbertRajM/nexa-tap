@@ -77,3 +77,16 @@ ks_dir = os.path.expanduser('~/.android')
 os.makedirs(ks_dir, exist_ok=True)
 shutil.copy('ci/debug.keystore', os.path.join(ks_dir, 'debug.keystore'))
 print('fixed signing key installed')
+
+# ---- Older plugins (e.g. nfc_manager) target an old Android SDK; raise it to 35 ----
+import glob, re as _re
+_cache = os.environ.get('PUB_CACHE') or os.path.expanduser('~/.pub-cache')
+for gradle in glob.glob(os.path.join(_cache, 'hosted', '*', '*', 'android', 'build.gradle*')):
+    txt = open(gradle).read()
+    def bump(m):
+        n = int(m.group(2))
+        return m.group(1) + ('35' if n < 34 else str(n))
+    new = _re.sub(r'(compileSdk(?:Version)?\s*=?\s*)(\d+)', bump, txt)
+    if new != txt:
+        open(gradle, 'w').write(new)
+        print('raised compileSdk in', gradle)
