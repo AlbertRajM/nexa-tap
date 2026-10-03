@@ -76,6 +76,40 @@ import shutil, os
 ks_dir = os.path.expanduser('~/.android')
 os.makedirs(ks_dir, exist_ok=True)
 shutil.copy('ci/debug.keystore', os.path.join(ks_dir, 'debug.keystore'))
+
+# Sign the release APK with our fixed key explicitly, so every build has the
+# same SHA-1 (needed for Google login and for updates to install over the old app).
+shutil.copy('ci/debug.keystore', 'build_app/android/app/nexa.keystore')
+kts = pathlib.Path('build_app/android/app/build.gradle.kts')
+groovy = pathlib.Path('build_app/android/app/build.gradle')
+if kts.exists():
+    g = kts.read_text()
+    if 'create("nexa")' not in g:
+        g = g.replace('android {', '''android {
+    signingConfigs {
+        create("nexa") {
+            storeFile = file("nexa.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }''', 1)
+        g = g.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("nexa")')
+    kts.write_text(g)
+elif groovy.exists():
+    g = groovy.read_text()
+    if 'nexa {' not in g:
+        g = g.replace('android {', '''android {
+    signingConfigs {
+        nexa {
+            storeFile file("nexa.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }''', 1)
+        g = g.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.nexa')
+    groovy.write_text(g)
 print('fixed signing key installed')
 
 # ---- Older plugins (e.g. nfc_manager) target an old Android SDK; raise it to 35 ----

@@ -848,11 +848,11 @@ String friendlyError(Object e) {
     return t('No internet connection.');
   }
   if (s.contains('google_not_configured')) return t('Google login is not set up yet.');
-  if (s.contains('ApiException: 10') || s.contains('google_no_token')) {
+  if (RegExp(r'sign_in_failed, \w+: 10:').hasMatch(s) || s.contains('ApiException: 10') || s.contains('google_no_token')) {
     return t('Google login is not set up correctly. Check the Google Cloud setup (package name and SHA-1).');
   }
-  if (s.contains('ApiException: 7') || s.contains('network_error')) return t('No internet connection.');
-  if (s.contains('ApiException: 12500') || s.contains('sign_in_failed')) {
+  if (RegExp(r'sign_in_failed, \w+: 7:').hasMatch(s) || s.contains('ApiException: 7') || s.contains('network_error')) return t('No internet connection.');
+  if (s.contains(': 12500:') || s.contains('sign_in_failed')) {
     return t('Google could not sign you in. Update Google Play services and try again.');
   }
   if (s.contains('audience') || s.contains('Unacceptable')) {
